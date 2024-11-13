@@ -4914,3 +4914,22 @@
 2024-11-13 17:10:11,076 - docstring_workflow - INFO - Function '_init_azure_client' has an incomplete docstring: ['Missing Returns section.']
 2024-11-13 17:10:12,326 - docstring_workflow - ERROR - Content safety check failed: Connection error.
 2024-11-13 17:10:12,326 - docstring_workflow - ERROR - Content safety check failed for _init_azure_client
+2024-11-13 19:25:14,990 - docstring_workflow - INFO - Successfully loaded source code from '/tmp/tmpsr85itsh/interaction.py'
+2024-11-13 19:25:15,013 - docstring_workflow - INFO - Azure OpenAI client initialized successfully
+2024-11-13 19:25:15,015 - docstring_workflow - INFO - Connected to Redis cache successfully
+2024-11-13 19:25:15,015 - docstring_workflow - INFO - Interaction Handler initialized with batch processing capability
+2024-11-13 19:25:15,015 - docstring_workflow - ERROR - Error extracting functions: inconsistent use of tabs and spaces in indentation (<unknown>, line 41)
+2024-11-13 19:25:15,015 - docstring_workflow - ERROR - Error in batch processing: inconsistent use of tabs and spaces in indentation (<unknown>, line 41)
+2024-11-13 19:25:15,015 - docstring_workflow - ERROR - No updated code to save for '/tmp/tmpsr85itsh/interaction.py'.
+2024-11-13 19:25:15,015 - docstring_workflow - INFO - Successfully loaded source code from '/tmp/tmpsr85itsh/response_parser.py'
+2024-11-13 19:25:15,036 - docstring_workflow - INFO - Azure OpenAI client initialized successfully
+2024-11-13 19:25:15,037 - docstring_workflow - INFO - Connected to Redis cache successfully
+2024-11-13 19:25:15,037 - docstring_workflow - INFO - Interaction Handler initialized with batch processing capability
+2024-11-13 19:25:15,038 - docstring_workflow - INFO - Cache miss for function ID: a52e9aa290ea0caae8ddf3129f7e94bf
+2024-11-13 19:25:15,039 - docstring_workflow - INFO - Function 'extract_section' has an incomplete docstring: ["Parameter 'text' not documented in Args section.", "Parameter 'section_name' not documented in Args section.", 'Missing Returns section.']
+2024-11-13 19:25:16,313 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:25:16,313 - docstring_workflow - ERROR - Content safety check failed for extract_section
+2024-11-13 19:25:16,313 - docstring_workflow - INFO - Cache miss for function ID: 35bc80da596342c5722d6cbb97b84cc9
+2024-11-13 19:25:16,314 - docstring_workflow - INFO - Function 'extract_parameter_section' has an incomplete docstring: ["Parameter 'text' not documented in Args section.", 'Missing Returns section.']
+2024-11-13 19:25:17,750 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:25:17,750 - docstring_workflow - ERROR - Content safety check failed for extract_parameter_section
