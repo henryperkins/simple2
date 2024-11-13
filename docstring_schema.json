@@ -1,0 +1,60 @@
+// docstring_schema.json
+{
+    "version": "1.0.0",
+    "schema_name": "google_style_docstrings",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 1000
+        },
+        "parameters": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_]*$"
+              },
+              "type": {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_]*(?:\\[[A-Za-z][A-Za-z0-9_]*\\])?$"
+              },
+              "description": {
+                "type": "string",
+                "minLength": 5,
+                "maxLength": 500
+              },
+              "optional": {
+                "type": "boolean",
+                "default": false
+              },
+              "default_value": {
+                "type": "string"
+              }
+            },
+            "required": ["name", "type", "description"]
+          }
+        },
+        "returns": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string",
+              "minLength": 5,
+              "maxLength": 500
+            }
+          },
+          "required": ["type", "description"]
+        }
+      },
+      "required": ["description", "parameters", "returns"],
+      "additionalProperties": false
+    }
+  }

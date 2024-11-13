@@ -1,0 +1,6 @@
+openai
+python-dotenv
+pytest
+flake8
+sphinx
+loguru
