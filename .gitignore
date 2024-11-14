@@ -29,3 +29,10 @@ cache/ *.cache
 output/
 workflow.log
 venv/
+venv
+__pycache__
+output
+output/
+.pytest_cache/
+workflow.log.1
+__pycache__/

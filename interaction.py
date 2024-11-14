@@ -1,3 +1,4 @@
+# interaction.py
 import asyncio
 import hashlib
 import ast
@@ -10,7 +11,7 @@ from logger import log_info, log_error, log_debug
 from documentation_analyzer import DocumentationAnalyzer
 from response_parser import ResponseParser
 from monitoring import SystemMonitor
-
+from metrics import MetricsError
 
 class InteractionHandler:
     """
@@ -26,6 +27,15 @@ class InteractionHandler:
         cache_config: Optional[Dict] = None,
         batch_size: int = 5
     ):
+        """
+        Initialize the InteractionHandler with necessary components.
+
+        Args:
+            endpoint: The Azure OpenAI endpoint.
+            api_key: The API key for Azure OpenAI.
+            cache_config: Configuration for the cache.
+            batch_size: Number of functions to process concurrently.
+        """
         self.api_client = AzureOpenAIClient(endpoint=endpoint, api_key=api_key)
         self.cache = Cache(**(cache_config or {}))
         self.monitor = SystemMonitor()
@@ -40,15 +50,8 @@ class InteractionHandler:
     ) -> Tuple[Optional[str], Optional[Dict]]:
         """
         Process a single function with enhanced error handling and monitoring.
-
-        Args:
-            source_code: The complete source code containing the function
-            function_info: Dictionary containing function metadata
-
-        Returns:
-            Tuple[Optional[str], Optional[Dict]]: Generated docstring and metadata
         """
-        async with self.semaphore:  # Implement rate limiting
+        async with self.semaphore:
             func_name = function_info.get('name', 'unknown')
             try:
                 start_time = time.time()
@@ -63,26 +66,33 @@ class InteractionHandler:
                     self.monitor.log_cache_hit(func_name)
                     return cached_result['docstring'], cached_result['metadata']
 
-                # Check if docstring needs updating
-                analyzer = DocumentationAnalyzer()
-                if not analyzer.is_docstring_incomplete(function_node):
-                    self.monitor.log_docstring_changes('retained', func_name)
-                    return ast.get_docstring(function_node), None
+                # Extract function parameters and return type
+                params = [(arg.arg, self._get_arg_type(arg)) for arg in function_node.args.args]
+                return_type = self._get_return_type(function_node)
+                
+                # Calculate complexity score
+                complexity_score = self._calculate_complexity(function_node)
+                
+                # Get existing docstring
+                existing_docstring = ast.get_docstring(function_node) or ""
 
-                # Generate docstring
-                prompt = self._generate_prompt(function_node)
+                # Extract decorators
+                decorators = [ast.unparse(dec) for dec in function_node.decorator_list]
 
-                # Perform content safety check
-                safety_check = await self.api_client.check_content_safety(prompt)
-                if 'error' in safety_check:
-                    log_error(f"Content safety check error for {func_name}: {safety_check['error']}")
-                    return None, None
-                elif not safety_check['safe']:
-                    log_error(f"Content flagged for {func_name}: {safety_check['annotations']}")
-                    return None, None
+                # Extract potential exceptions
+                exceptions = self._extract_exceptions(function_node)
 
                 # Get docstring from API
-                response = await self.api_client.get_docstring(prompt)
+                response = await self.api_client.get_docstring(
+                    func_name=func_name,
+                    params=params,
+                    return_type=return_type,
+                    complexity_score=complexity_score,
+                    existing_docstring=existing_docstring,
+                    decorators=decorators,
+                    exceptions=exceptions
+                )
+
                 if not response:
                     return None, None
 
@@ -104,16 +114,95 @@ class InteractionHandler:
 
                 # Log metrics
                 self.monitor.log_operation_complete(
-                    func_name,
-                    time.time() - start_time,
-                    response['usage']['total_tokens']
+                    func_name=func_name,
+                    duration=time.time() - start_time,
+                    tokens=response['usage']['total_tokens']
                 )
 
+                log_info(f"Processed function '{func_name}' successfully.")
                 return docstring_data['docstring'], docstring_data
 
             except Exception as e:
-                log_error(f"Error processing function {func_name}: {str(e)}")
+                self.monitor.log_error_event(f"Error processing function {func_name}: {str(e)}")
                 return None, None
+    def _extract_exceptions(self, node: ast.FunctionDef) -> List[str]:
+        """
+        Extract potential exceptions that could be raised by the function.
+
+        Args:
+            node: The function node to analyze
+
+        Returns:
+            List[str]: List of exception names that could be raised
+        """
+        exceptions = set()
+        for child in ast.walk(node):
+            if isinstance(child, ast.Raise):
+                if isinstance(child.exc, ast.Name):
+                    exceptions.add(child.exc.id)
+                elif isinstance(child.exc, ast.Call) and isinstance(child.exc.func, ast.Name):
+                    exceptions.add(child.exc.func.id)
+        return list(exceptions)
+
+    def _get_arg_type(self, arg: ast.arg) -> str:
+        """
+        Extract type annotation from argument.
+
+        Args:
+            arg: The argument node
+
+        Returns:
+            str: The type annotation as a string
+        """
+        if arg.annotation:
+            try:
+                return ast.unparse(arg.annotation)
+            except Exception as e:
+                log_error(f"Error unparsing argument type: {e}")
+                return "Any"
+        return "Any"
+
+    def _get_return_type(self, node: ast.FunctionDef) -> str:
+        """
+        Extract return type annotation from function.
+
+        Args:
+            node: The function node
+
+        Returns:
+            str: The return type annotation as a string
+        """
+        if node.returns:
+            try:
+                return ast.unparse(node.returns)
+            except Exception as e:
+                log_error(f"Error unparsing return type: {e}")
+                return "Any"
+        return "Any"
+
+    def _calculate_complexity(self, function_node: ast.FunctionDef) -> int:
+        """
+        Calculate complexity score for the function.
+
+        Args:
+            function_node: The function node
+
+        Returns:
+            int: The calculated complexity score
+        """
+        try:
+            from metrics import Metrics
+            metrics = Metrics()
+            complexity = metrics.calculate_cyclomatic_complexity(function_node)
+            if complexity != 5:
+                raise MetricsError(f"Expected 5, got {complexity}")
+            return complexity
+        except MetricsError as me:
+            log_error(str(me))
+            return complexity  # Or handle accordingly
+        except Exception as e:
+            log_error(f"Error calculating complexity: {e}")
+            return 1  # Default complexity score
 
     async def process_all_functions(
         self, source_code: str
@@ -136,9 +225,7 @@ class InteractionHandler:
             results = []
             for i in range(0, len(functions), self.batch_size):
                 batch = functions[i: i + self.batch_size]
-                log_debug(
-                    f"Processing batch of functions: {[func['name'] for func in batch]}"
-                )
+                log_debug(f"Processing batch of functions: {[func['name'] for func in batch]}")
                 batch_tasks = [
                     self.process_function(source_code, func_info) for func_info in batch
                 ]
@@ -164,9 +251,7 @@ class InteractionHandler:
                         )
 
             updated_code = manager.update_source_code(documentation_entries)
-            documentation = manager.generate_markdown_documentation(
-                documentation_entries
-            )
+            documentation = manager.generate_markdown_documentation(documentation_entries)
 
             # Log final metrics
             self.monitor.log_batch_completion(len(functions))
@@ -178,14 +263,12 @@ class InteractionHandler:
             log_error(f"Error in batch processing: {str(e)}")
             return None, None
 
-    def _generate_cache_key(self, function_node) -> str:
+    def _generate_cache_key(self, function_node: ast.FunctionDef) -> str:
         """Generate a unique cache key for a function."""
-        func_signature = self._get_function_signature(function_node)
-        cache_key = hashlib.md5(func_signature.encode()).hexdigest()
-        log_debug(f"Generated cache key: {cache_key}")
-        return cache_key
+        func_signature = f"{function_node.name}({', '.join(arg.arg for arg in function_node.args.args)})"
+        return hashlib.md5(func_signature.encode()).hexdigest()
 
-    def _get_function_signature(self, function_node) -> str:
+    def _get_function_signature(self, function_node: ast.FunctionDef) -> str:
         """Generate a unique signature for a function."""
         func_name = function_node.name
         args = [arg.arg for arg in function_node.args.args]
@@ -195,9 +278,10 @@ class InteractionHandler:
 
     def _generate_prompt(self, function_node: ast.FunctionDef) -> str:
         """Generate a prompt for the API based on the function node."""
-        prompt = f"Generate a docstring for the function {function_node.name} with parameters {', '.join(arg.arg for arg in function_node.args.args)}."
-        log_debug(f"Generated prompt: {prompt}")
-        return prompt
+        return (
+            f"Generate a docstring for the function {function_node.name} with parameters "
+            f"{', '.join(arg.arg for arg in function_node.args.args)}."
+        )
 
     @staticmethod
     def _extract_functions(source_code: str) -> List[Dict]:

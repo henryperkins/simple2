@@ -3,7 +3,7 @@ from schema import DocstringSchema, JSON_SCHEMA
 from jsonschema import validate
 from jsonschema.exceptions import ValidationError
 import json
-from typing import Optional
+from typing import Optional, Dict, Any
 from logger import log_info, log_error, log_debug
 
 class ResponseParser:
@@ -28,8 +28,7 @@ class ResponseParser:
             log_error(f"Unexpected error during docstring parsing: {e}")
         return None
 
-    @staticmethod
-    def parse_json_response(response: str) -> dict:
+    def parse_json_response(self, response: str) -> Optional[Dict[str, Any]]:
         """
         Parse the Azure OpenAI response to extract the generated docstring and related details.
         """
@@ -38,10 +37,34 @@ class ResponseParser:
             response_json = json.loads(response)
             log_info("Successfully parsed Azure OpenAI response.")
             log_debug(f"Parsed JSON response: {response_json}")
-            return response_json
+
+            # Validate against JSON schema
+            validate(instance=response_json, schema=JSON_SCHEMA)
+
+            # Extract relevant fields
+            docstring = response_json.get("docstring", "")
+            summary = response_json.get("summary", "")
+            changelog = response_json.get("changelog", "Initial documentation")
+            complexity_score = response_json.get("complexity_score", 0)
+
+            log_debug(f"Extracted docstring: {docstring}")
+            log_debug(f"Extracted summary: {summary}")
+            log_debug(f"Extracted changelog: {changelog}")
+            log_debug(f"Extracted complexity score: {complexity_score}")
+
+            return {
+                "docstring": docstring,
+                "summary": summary,
+                "changelog": changelog,
+                "complexity_score": complexity_score
+            }
         except json.JSONDecodeError as e:
             log_error(f"Failed to parse response as JSON: {e}")
-            return {}
+        except ValidationError as e:
+            log_error(f"Schema validation error: {e}")
+        except Exception as e:
+            log_error(f"Unexpected error during JSON response parsing: {e}")
+        return None
 
     @staticmethod
     def _parse_plain_text_response(text: str) -> dict:

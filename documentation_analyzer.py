@@ -1,7 +1,7 @@
 from schema import DocstringSchema, JSON_SCHEMA
 from jsonschema import validate, ValidationError
 import ast
-from typing import Optional
+from typing import Optional, List
 from logger import log_info, log_error, log_debug
 
 class DocumentationAnalyzer:
@@ -72,7 +72,7 @@ class DocumentationAnalyzer:
         if return_issues:
             issues.extend(return_issues)
 
-        raises_issues = self._verify_raises_section(function_node, docstring_sections.get('Raises', ''))
+        raises_issues = self.verify_raises_section(function_node, docstring_sections.get('Raises', ''))
         if raises_issues:
             issues.extend(raises_issues)
 
@@ -206,7 +206,7 @@ class DocumentationAnalyzer:
         log_debug(f"Returns section issues: {issues}")
         return issues
 
-    def _verify_raises_section(self, function_node: ast.FunctionDef, raises_section: str) -> list:
+    def verify_raises_section(self, function_node: ast.FunctionDef, raises_section: str) -> List[str]:
         """
         Verify that the Raises section exists if the function raises exceptions.
 
@@ -239,4 +239,12 @@ class DocumentationAnalyzer:
         """
         log_debug("Parsing existing docstring into DocstringSchema.")
         # Implement the actual parsing logic here
-        return DocstringSchema(description=docstring, parameters=[], returns={})
+        return DocstringSchema(
+            description=docstring,
+            parameters=[],
+            returns={"type": "", "description": ""},
+            raises=None,
+            examples=None,
+            notes=None,
+            metadata=None
+        )

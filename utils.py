@@ -58,6 +58,11 @@ async def load_json_file(filepath: str, max_retries: int = 3) -> Dict:
             if attempt == max_retries - 1:
                 raise
         await asyncio.sleep(2 ** attempt)
+    
+    # If all retries fail, raise an exception or return an empty dictionary
+    log_error(f"Failed to load JSON file after {max_retries} attempts: {filepath}")
+    return {}
+
 def ensure_directory(directory_path: str) -> None:
     """
     Ensure a directory exists, creating it if necessary.
@@ -171,3 +176,37 @@ def filter_files(
                     matches.append(filepath)
     log_info(f"Filtered files: {matches}")
     return matches
+
+def get_all_files(directory, exclude_dirs=None):
+    """
+    Traverse the given directory recursively and collect paths to all Python files,
+    while excluding any directories specified in the `exclude_dirs` list.
+
+    Args:
+        directory (str): The root directory to search for Python files.
+        exclude_dirs (list, optional): A list of directory names to exclude from the search.
+            Defaults to None, which means no directories are excluded.
+
+    Returns:
+        list: A list of file paths to Python files found in the directory, excluding specified directories.
+
+    Raises:
+        ValueError: If the provided directory does not exist or is not accessible.
+    """
+    if not os.path.isdir(directory):
+        raise ValueError(f"The directory {directory} does not exist or is not accessible.")
+
+    if exclude_dirs is None:
+        exclude_dirs = []
+
+    python_files = []
+    for dirpath, dirnames, filenames in os.walk(directory):
+        # Exclude specified directories
+        dirnames[:] = [d for d in dirnames if d not in exclude_dirs]
+
+        # Collect Python files
+        for filename in filenames:
+            if filename.endswith('.py'):
+                python_files.append(os.path.join(dirpath, filename))
+
+    return python_files

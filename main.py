@@ -4,8 +4,30 @@ import os
 import shutil
 import tempfile
 import subprocess
-from interaction import InteractionHandler
+from api_client import AzureOpenAIClient
 from logger import log_info, log_error, log_debug
+from utils import ensure_directory
+from interaction import InteractionHandler
+
+async def process_prompt(prompt: str, client: AzureOpenAIClient):
+    """
+    Process a single prompt to generate a response.
+
+    Args:
+        prompt (str): The input prompt for the AI model.
+        client (AzureOpenAIClient): The Azure OpenAI client instance.
+
+    Returns:
+        str: The AI-generated response.
+    """
+    try:
+        response = await client.get_docstring(prompt)
+        if response:
+            print(response['content']['docstring'])
+        else:
+            log_error("Failed to generate a response.")
+    except Exception as e:
+        log_error(f"Error processing prompt: {e}")
 
 def load_source_file(file_path):
     """
@@ -54,17 +76,19 @@ def save_updated_source(file_path, updated_code):
         log_error(f"Failed to save updated source code to '{file_path}': {e}")
         raise
 
-async def process_file(file_path, args):
+async def process_file(file_path, args, client):
     """
     Process a single file to generate/update docstrings.
     
     Args:
         file_path (str): The path to the source file.
         args (argparse.Namespace): Parsed command-line arguments.
+        client (AzureOpenAIClient): The Azure OpenAI client instance.
     """
     log_debug(f"Processing file: {file_path}")
     try:
         source_code = load_source_file(file_path)
+
         cache_config = {
             'host': args.redis_host,
             'port': args.redis_port,
@@ -80,6 +104,7 @@ async def process_file(file_path, args):
         updated_code, documentation = await interaction_handler.process_all_functions(source_code)
 
         if updated_code:
+            ensure_directory(args.output_dir)  # Ensure the output directory exists
             output_file_path = os.path.join(args.output_dir, os.path.basename(file_path))
             save_updated_source(output_file_path, updated_code)
             if args.documentation_file and documentation:
@@ -103,6 +128,9 @@ async def run_workflow(args):
 
     log_debug(f"Starting workflow for source path: {source_path}")
 
+    # Initialize the Azure OpenAI client
+    client = AzureOpenAIClient(endpoint=args.endpoint, api_key=args.api_key)
+
     # Check if the source path is a Git URL
     if source_path.startswith('http://') or source_path.startswith('https://'):
         temp_dir = tempfile.mkdtemp()
@@ -121,11 +149,11 @@ async def run_workflow(args):
             for root, _, files in os.walk(source_path):
                 for file in files:
                     if file.endswith('.py'):
-                        await process_file(os.path.join(root, file), args)
+                        await process_file(os.path.join(root, file), args, client)
         else:
             log_debug(f"Processing single file: {source_path}")
             # Process a single file
-            await process_file(source_path, args)
+            await process_file(source_path, args, client)
     finally:
         if temp_dir:
             log_debug(f"Cleaning up temporary directory: {temp_dir}")
@@ -145,4 +173,4 @@ if __name__ == "__main__":
     parser.add_argument('--cache-ttl', type=int, default=86400, help='Default TTL for cache entries in seconds.')
     args = parser.parse_args()
 
-    asyncio.run(run_workflow(args)) 
+    asyncio.run(run_workflow(args))
