@@ -4933,3 +4933,612 @@
 2024-11-13 19:25:16,314 - docstring_workflow - INFO - Function 'extract_parameter_section' has an incomplete docstring: ["Parameter 'text' not documented in Args section.", 'Missing Returns section.']
 2024-11-13 19:25:17,750 - docstring_workflow - ERROR - Content safety check failed: Connection error.
 2024-11-13 19:25:17,750 - docstring_workflow - ERROR - Content safety check failed for extract_parameter_section
+2024-11-13 19:56:38,414 - docstring_workflow - INFO - Successfully loaded source code from '/tmp/tmpg7e_fvll/interaction.py'
+2024-11-13 19:56:38,437 - docstring_workflow - INFO - Azure OpenAI client initialized successfully
+2024-11-13 19:56:38,439 - docstring_workflow - INFO - Connected to Redis cache successfully
+2024-11-13 19:56:38,439 - docstring_workflow - INFO - Interaction Handler initialized with batch processing capability
+2024-11-13 19:56:38,439 - docstring_workflow - ERROR - Error extracting functions: inconsistent use of tabs and spaces in indentation (<unknown>, line 41)
+2024-11-13 19:56:38,439 - docstring_workflow - ERROR - Error in batch processing: inconsistent use of tabs and spaces in indentation (<unknown>, line 41)
+2024-11-13 19:56:38,439 - docstring_workflow - ERROR - No updated code to save for '/tmp/tmpg7e_fvll/interaction.py'.
+2024-11-13 19:56:38,439 - docstring_workflow - INFO - Successfully loaded source code from '/tmp/tmpg7e_fvll/response_parser.py'
+2024-11-13 19:56:38,460 - docstring_workflow - INFO - Azure OpenAI client initialized successfully
+2024-11-13 19:56:38,461 - docstring_workflow - INFO - Connected to Redis cache successfully
+2024-11-13 19:56:38,461 - docstring_workflow - INFO - Interaction Handler initialized with batch processing capability
+2024-11-13 19:56:38,463 - docstring_workflow - INFO - Cache miss for function ID: a52e9aa290ea0caae8ddf3129f7e94bf
+2024-11-13 19:56:38,463 - docstring_workflow - INFO - Function 'extract_section' has an incomplete docstring: ["Parameter 'text' not documented in Args section.", "Parameter 'section_name' not documented in Args section.", 'Missing Returns section.']
+2024-11-13 19:56:39,683 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:56:39,684 - docstring_workflow - ERROR - Content safety check failed for extract_section
+2024-11-13 19:56:39,684 - docstring_workflow - INFO - Cache miss for function ID: 35bc80da596342c5722d6cbb97b84cc9
+2024-11-13 19:56:39,684 - docstring_workflow - INFO - Function 'extract_parameter_section' has an incomplete docstring: ["Parameter 'text' not documented in Args section.", 'Missing Returns section.']
+2024-11-13 19:56:40,973 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:56:40,974 - docstring_workflow - ERROR - Content safety check failed for extract_parameter_section
+2024-11-13 19:56:40,974 - docstring_workflow - INFO - Cache miss for function ID: 5884386046447241c8c8f168d861747a
+2024-11-13 19:56:40,974 - docstring_workflow - INFO - Function 'extract_return_section' has an incomplete docstring: ["Parameter 'text' not documented in Args section.", 'Missing Returns section.']
+2024-11-13 19:56:42,199 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:56:42,199 - docstring_workflow - ERROR - Content safety check failed for extract_return_section
+2024-11-13 19:56:42,200 - docstring_workflow - INFO - Cache miss for function ID: 943354bb89f7c0c88c12f3ad2c12fcdd
+2024-11-13 19:56:42,200 - docstring_workflow - INFO - Function 'extract_code_examples' has an incomplete docstring: ["Parameter 'text' not documented in Args section.", 'Missing Returns section.']
+2024-11-13 19:56:43,487 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:56:43,487 - docstring_workflow - ERROR - Content safety check failed for extract_code_examples
+2024-11-13 19:56:43,487 - docstring_workflow - INFO - Cache miss for function ID: d1f96ec80257ad75a3cd2d44ffa5a133
+2024-11-13 19:56:43,488 - docstring_workflow - INFO - Function 'parse_function_analysis' has an incomplete docstring: ["Parameter 'response' not documented in Args section.", 'Missing Returns section.']
+2024-11-13 19:56:44,939 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:56:44,940 - docstring_workflow - ERROR - Content safety check failed for parse_function_analysis
+2024-11-13 19:56:44,940 - docstring_workflow - INFO - Cache miss for function ID: ff5c6960042d86874ccb42283e037ea4
+2024-11-13 19:56:44,940 - docstring_workflow - INFO - Function 'get_default_response' has an incomplete docstring: ['Missing Returns section.']
+2024-11-13 19:56:46,312 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:56:46,312 - docstring_workflow - ERROR - Content safety check failed for get_default_response
+2024-11-13 19:56:46,314 - docstring_workflow - ERROR - Error in batch processing: DocStringManager.generate_markdown_documentation() missing 3 required positional arguments: 'module_name', 'file_path', and 'description'
+2024-11-13 19:56:46,315 - docstring_workflow - ERROR - No updated code to save for '/tmp/tmpg7e_fvll/response_parser.py'.
+2024-11-13 19:56:46,315 - docstring_workflow - INFO - Successfully loaded source code from '/tmp/tmpg7e_fvll/api_client.py'
+2024-11-13 19:56:46,336 - docstring_workflow - INFO - Azure OpenAI client initialized successfully
+2024-11-13 19:56:46,337 - docstring_workflow - INFO - Connected to Redis cache successfully
+2024-11-13 19:56:46,337 - docstring_workflow - INFO - Interaction Handler initialized with batch processing capability
+2024-11-13 19:56:46,338 - docstring_workflow - INFO - Cache miss for function ID: 74784b5204978384eb3ee3f65036a1c7
+2024-11-13 19:56:46,338 - docstring_workflow - INFO - Function '__init__' has no docstring.
+2024-11-13 19:56:47,787 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:56:47,787 - docstring_workflow - ERROR - Content safety check failed for __init__
+2024-11-13 19:56:47,788 - docstring_workflow - INFO - Cache miss for function ID: 9394a4b6b17c52035ba46a03f3f8eb55
+2024-11-13 19:56:47,788 - docstring_workflow - INFO - Function '_init_azure_client' has an incomplete docstring: ['Missing Returns section.']
+2024-11-13 19:56:49,000 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:56:49,000 - docstring_workflow - ERROR - Content safety check failed for _init_azure_client
+2024-11-13 19:56:49,000 - docstring_workflow - INFO - Cache miss for function ID: c329bfd7e3ed8d549633ed7b1099019f
+2024-11-13 19:56:49,001 - docstring_workflow - INFO - Function '_init_openai_client' has an incomplete docstring: ['Missing Returns section.']
+2024-11-13 19:56:50,246 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:56:50,246 - docstring_workflow - ERROR - Content safety check failed for _init_openai_client
+2024-11-13 19:56:50,246 - docstring_workflow - INFO - Cache miss for function ID: 98a6021f903dc8e27f959c4157bb1bb1
+2024-11-13 19:56:50,246 - docstring_workflow - INFO - Function '_init_anthropic_client' has an incomplete docstring: ['Missing Returns section.']
+2024-11-13 19:56:51,753 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:56:51,753 - docstring_workflow - ERROR - Content safety check failed for _init_anthropic_client
+2024-11-13 19:56:51,755 - docstring_workflow - ERROR - Error in batch processing: DocStringManager.generate_markdown_documentation() missing 3 required positional arguments: 'module_name', 'file_path', and 'description'
+2024-11-13 19:56:51,755 - docstring_workflow - ERROR - No updated code to save for '/tmp/tmpg7e_fvll/api_client.py'.
+2024-11-13 19:56:51,755 - docstring_workflow - INFO - Successfully loaded source code from '/tmp/tmpg7e_fvll/utils.py'
+2024-11-13 19:56:51,776 - docstring_workflow - INFO - Azure OpenAI client initialized successfully
+2024-11-13 19:56:51,777 - docstring_workflow - INFO - Connected to Redis cache successfully
+2024-11-13 19:56:51,777 - docstring_workflow - INFO - Interaction Handler initialized with batch processing capability
+2024-11-13 19:56:51,781 - docstring_workflow - INFO - Cache miss for function ID: 573e3393a69404102df383cccf87888d
+2024-11-13 19:56:51,782 - docstring_workflow - INFO - Function 'generate_hash' has an incomplete docstring: ["Parameter 'content' not documented in Args section.", 'Missing Returns section.']
+2024-11-13 19:56:53,071 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:56:53,071 - docstring_workflow - ERROR - Content safety check failed for generate_hash
+2024-11-13 19:56:53,071 - docstring_workflow - INFO - Cache miss for function ID: 88bd2ff9312ab61651c830359e39a60c
+2024-11-13 19:56:53,071 - docstring_workflow - INFO - Function 'load_json_file' has an incomplete docstring: ["Parameter 'filepath' not documented in Args section.", "Parameter 'max_retries' not documented in Args section.", 'Missing Returns section.', 'Missing Raises section for exceptions.']
+2024-11-13 19:56:54,369 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:56:54,369 - docstring_workflow - ERROR - Content safety check failed for load_json_file
+2024-11-13 19:56:54,370 - docstring_workflow - INFO - Cache miss for function ID: bfa194291e5a4783b2c68ed421047730
+2024-11-13 19:56:54,370 - docstring_workflow - INFO - Function 'save_json_file' has an incomplete docstring: ["Parameter 'filepath' not documented in Args section.", "Parameter 'data' not documented in Args section.", "Parameter 'max_retries' not documented in Args section.", 'Missing Returns section.', 'Missing Raises section for exceptions.']
+2024-11-13 19:56:55,617 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:56:55,617 - docstring_workflow - ERROR - Content safety check failed for save_json_file
+2024-11-13 19:56:55,617 - docstring_workflow - INFO - Cache miss for function ID: 084a79f72df1bdc27714d37e2f8b19f9
+2024-11-13 19:56:55,617 - docstring_workflow - INFO - Function 'create_timestamp' has an incomplete docstring: ['Missing Returns section.']
+2024-11-13 19:56:57,032 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:56:57,032 - docstring_workflow - ERROR - Content safety check failed for create_timestamp
+2024-11-13 19:56:57,032 - docstring_workflow - INFO - Cache miss for function ID: d8c5ff239eee498d74dea9f957af97e0
+2024-11-13 19:56:57,032 - docstring_workflow - INFO - Function 'ensure_directory' has an incomplete docstring: ["Parameter 'directory' not documented in Args section.", 'Missing Returns section.', 'Missing Raises section for exceptions.']
+2024-11-13 19:56:58,524 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:56:58,524 - docstring_workflow - ERROR - Content safety check failed for ensure_directory
+2024-11-13 19:56:58,524 - docstring_workflow - INFO - Cache miss for function ID: ab1b9ed4e6ec1515ced1da5b727d4535
+2024-11-13 19:56:58,525 - docstring_workflow - INFO - Function 'validate_file_path' has an incomplete docstring: ["Parameter 'filepath' not documented in Args section.", "Parameter 'extension' not documented in Args section.", 'Missing Returns section.']
+2024-11-13 19:56:59,813 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:56:59,813 - docstring_workflow - ERROR - Content safety check failed for validate_file_path
+2024-11-13 19:56:59,813 - docstring_workflow - INFO - Cache miss for function ID: 8c042a1861a8e1f4b6fed4f2908a1537
+2024-11-13 19:56:59,813 - docstring_workflow - INFO - Function 'create_error_result' has an incomplete docstring: ["Parameter 'error_type' not documented in Args section.", "Parameter 'error_message' not documented in Args section.", 'Missing Returns section.']
+2024-11-13 19:57:01,264 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:57:01,264 - docstring_workflow - ERROR - Content safety check failed for create_error_result
+2024-11-13 19:57:01,264 - docstring_workflow - INFO - Cache miss for function ID: 3a2a15067d2b9ad8ce43e77bd3cdbacd
+2024-11-13 19:57:01,265 - docstring_workflow - INFO - Function 'add_parent_info' has an incomplete docstring: ["Parameter 'tree' not documented in Args section.", 'Missing Returns section.']
+2024-11-13 19:57:02,746 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:57:02,746 - docstring_workflow - ERROR - Content safety check failed for add_parent_info
+2024-11-13 19:57:02,746 - docstring_workflow - INFO - Cache miss for function ID: cd119ab13fbda2efbdb1396935e1854e
+2024-11-13 19:57:02,747 - docstring_workflow - INFO - Function 'get_file_stats' has an incomplete docstring: ["Parameter 'filepath' not documented in Args section.", 'Missing Returns section.']
+2024-11-13 19:57:04,125 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:57:04,125 - docstring_workflow - ERROR - Content safety check failed for get_file_stats
+2024-11-13 19:57:04,125 - docstring_workflow - INFO - Cache miss for function ID: 599d01c92825891b1d0a3131a4f9f8e6
+2024-11-13 19:57:04,126 - docstring_workflow - INFO - Function 'filter_files' has an incomplete docstring: ["Parameter 'directory' not documented in Args section.", "Parameter 'pattern' not documented in Args section.", "Parameter 'exclude_patterns' not documented in Args section.", 'Missing Returns section.']
+2024-11-13 19:57:05,452 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:57:05,452 - docstring_workflow - ERROR - Content safety check failed for filter_files
+2024-11-13 19:57:05,452 - docstring_workflow - INFO - Cache miss for function ID: cdce7af3392254d0d176b8a63901ce00
+2024-11-13 19:57:05,452 - docstring_workflow - INFO - Function 'normalize_path' has an incomplete docstring: ["Parameter 'path' not documented in Args section.", 'Missing Returns section.']
+2024-11-13 19:57:06,720 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:57:06,720 - docstring_workflow - ERROR - Content safety check failed for normalize_path
+2024-11-13 19:57:06,720 - docstring_workflow - INFO - Cache miss for function ID: 714cf311c8f8361a3b27c3c799b96021
+2024-11-13 19:57:06,721 - docstring_workflow - INFO - Function 'get_relative_path' has an incomplete docstring: ["Parameter 'path' not documented in Args section.", "Parameter 'base_path' not documented in Args section.", 'Missing Returns section.']
+2024-11-13 19:57:07,953 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:57:07,954 - docstring_workflow - ERROR - Content safety check failed for get_relative_path
+2024-11-13 19:57:07,954 - docstring_workflow - INFO - Cache miss for function ID: 6795414649b026c5aefa63626ac6992f
+2024-11-13 19:57:07,954 - docstring_workflow - INFO - Function 'is_python_file' has an incomplete docstring: ["Parameter 'filepath' not documented in Args section.", 'Missing Returns section.']
+2024-11-13 19:57:09,233 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:57:09,233 - docstring_workflow - ERROR - Content safety check failed for is_python_file
+2024-11-13 19:57:09,233 - docstring_workflow - INFO - Cache miss for function ID: 29ffa664883cb0c16f825609b047ff48
+2024-11-13 19:57:09,234 - docstring_workflow - INFO - Function 'convert_changelog' has an incomplete docstring: ["Parameter 'changelog' not documented in Args section.", 'Missing Returns section.']
+2024-11-13 19:57:10,621 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:57:10,622 - docstring_workflow - ERROR - Content safety check failed for convert_changelog
+2024-11-13 19:57:10,622 - docstring_workflow - INFO - Cache miss for function ID: 38331e26bc3068f1dbb2005345c9cf4d
+2024-11-13 19:57:10,622 - docstring_workflow - INFO - Function 'format_function_response' has an incomplete docstring: ["Parameter 'function_data' not documented in Args section.", 'Missing Returns section.']
+2024-11-13 19:57:12,006 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:57:12,006 - docstring_workflow - ERROR - Content safety check failed for format_function_response
+2024-11-13 19:57:12,006 - docstring_workflow - INFO - Cache miss for function ID: 34b9d444ecedac22313fee6f9b568f72
+2024-11-13 19:57:12,006 - docstring_workflow - INFO - Function 'validate_function_data' has an incomplete docstring: ["Parameter 'data' not documented in Args section.", 'Missing Returns section.', 'Missing Raises section for exceptions.']
+2024-11-13 19:57:13,353 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:57:13,353 - docstring_workflow - ERROR - Content safety check failed for validate_function_data
+2024-11-13 19:57:13,353 - docstring_workflow - INFO - Cache miss for function ID: bcc73e06b5758a6889c722f4eab84763
+2024-11-13 19:57:13,354 - docstring_workflow - INFO - Function 'get_annotation' has an incomplete docstring: ["Parameter 'node' not documented in Args section.", 'Missing Returns section.']
+2024-11-13 19:57:14,529 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:57:14,529 - docstring_workflow - ERROR - Content safety check failed for get_annotation
+2024-11-13 19:57:14,530 - docstring_workflow - INFO - Cache miss for function ID: 2b048a8d22b3117071ddd47da99cc518
+2024-11-13 19:57:14,530 - docstring_workflow - INFO - Function 'format_response' has an incomplete docstring: ["Parameter 'sections' not documented in Args section.", 'Missing Returns section.']
+2024-11-13 19:57:16,013 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:57:16,013 - docstring_workflow - ERROR - Content safety check failed for format_response
+2024-11-13 19:57:16,013 - docstring_workflow - INFO - Cache miss for function ID: 7c464d3262d045d40fbffa3d0ae7f2ee
+2024-11-13 19:57:16,013 - docstring_workflow - INFO - Function '_load_schema' has an incomplete docstring: ['Missing Returns section.', 'Missing Raises section for exceptions.']
+2024-11-13 19:57:17,425 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:57:17,425 - docstring_workflow - ERROR - Content safety check failed for _load_schema
+2024-11-13 19:57:17,426 - docstring_workflow - INFO - Cache miss for function ID: 701a8c425e49dbda033e73840b65f5e4
+2024-11-13 19:57:17,426 - docstring_workflow - INFO - Function 'validate_schema' has an incomplete docstring: ["Parameter 'parsed_response' not documented in Args section.", 'Missing Returns section.', 'Missing Raises section for exceptions.']
+2024-11-13 19:57:18,761 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:57:18,762 - docstring_workflow - ERROR - Content safety check failed for validate_schema
+2024-11-13 19:57:18,762 - docstring_workflow - INFO - Cache miss for function ID: 2321cc08aafc9329fefee27d75f3f7a1
+2024-11-13 19:57:18,762 - docstring_workflow - INFO - Function 'format_validation_error' has an incomplete docstring: ["Parameter 'error' not documented in Args section.", 'Missing Returns section.']
+2024-11-13 19:57:20,213 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:57:20,213 - docstring_workflow - ERROR - Content safety check failed for format_validation_error
+2024-11-13 19:57:20,213 - docstring_workflow - INFO - Cache miss for function ID: 74784b5204978384eb3ee3f65036a1c7
+2024-11-13 19:57:20,213 - docstring_workflow - INFO - Function '__init__' has no docstring.
+2024-11-13 19:57:21,498 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:57:21,499 - docstring_workflow - ERROR - Content safety check failed for __init__
+2024-11-13 19:57:21,499 - docstring_workflow - INFO - Cache miss for function ID: 85fc3568cf2d7330c69f5608e2a80c10
+2024-11-13 19:57:21,499 - docstring_workflow - INFO - Function 'calculate_similarity' has an incomplete docstring: ["Parameter 'text1' not documented in Args section.", "Parameter 'text2' not documented in Args section.", 'Missing Returns section.']
+2024-11-13 19:57:22,852 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:57:22,852 - docstring_workflow - ERROR - Content safety check failed for calculate_similarity
+2024-11-13 19:57:22,852 - docstring_workflow - INFO - Cache miss for function ID: c85c1d8554145ff8ea760bca8aaa3130
+2024-11-13 19:57:22,852 - docstring_workflow - INFO - Function 'extract_keywords' has an incomplete docstring: ["Parameter 'text' not documented in Args section.", "Parameter 'top_k' not documented in Args section.", 'Missing Returns section.']
+2024-11-13 19:57:24,231 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:57:24,231 - docstring_workflow - ERROR - Content safety check failed for extract_keywords
+2024-11-13 19:57:24,232 - docstring_workflow - INFO - Cache miss for function ID: 92134327f3cabe357b4d19f3b191dfd0
+2024-11-13 19:57:24,232 - docstring_workflow - INFO - Function 'calculate_precision' has an incomplete docstring: ["Parameter 'retrieved_docs' not documented in Args section.", "Parameter 'relevant_docs' not documented in Args section.", 'Missing Returns section.']
+2024-11-13 19:57:25,678 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:57:25,678 - docstring_workflow - ERROR - Content safety check failed for calculate_precision
+2024-11-13 19:57:25,679 - docstring_workflow - INFO - Cache miss for function ID: 466843b4cd47c30a51801cbf683061cc
+2024-11-13 19:57:25,679 - docstring_workflow - INFO - Function 'calculate_recall' has an incomplete docstring: ["Parameter 'retrieved_docs' not documented in Args section.", "Parameter 'relevant_docs' not documented in Args section.", 'Missing Returns section.']
+2024-11-13 19:57:26,925 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:57:26,925 - docstring_workflow - ERROR - Content safety check failed for calculate_recall
+2024-11-13 19:57:26,926 - docstring_workflow - INFO - Cache miss for function ID: 444d53f524efc21ca6076b10668bcb7d
+2024-11-13 19:57:26,926 - docstring_workflow - INFO - Function 'calculate_f1_score' has an incomplete docstring: ["Parameter 'precision' not documented in Args section.", "Parameter 'recall' not documented in Args section.", 'Missing Returns section.']
+2024-11-13 19:57:28,173 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:57:28,173 - docstring_workflow - ERROR - Content safety check failed for calculate_f1_score
+2024-11-13 19:57:28,181 - docstring_workflow - ERROR - Error in batch processing: DocStringManager.generate_markdown_documentation() missing 3 required positional arguments: 'module_name', 'file_path', and 'description'
+2024-11-13 19:57:28,181 - docstring_workflow - ERROR - No updated code to save for '/tmp/tmpg7e_fvll/utils.py'.
+2024-11-13 19:57:28,181 - docstring_workflow - INFO - Successfully loaded source code from '/tmp/tmpg7e_fvll/docs.py'
+2024-11-13 19:57:28,202 - docstring_workflow - INFO - Azure OpenAI client initialized successfully
+2024-11-13 19:57:28,203 - docstring_workflow - INFO - Connected to Redis cache successfully
+2024-11-13 19:57:28,203 - docstring_workflow - INFO - Interaction Handler initialized with batch processing capability
+2024-11-13 19:57:28,209 - docstring_workflow - ERROR - Error in batch processing: DocStringManager.generate_markdown_documentation() missing 3 required positional arguments: 'module_name', 'file_path', and 'description'
+2024-11-13 19:57:28,209 - docstring_workflow - ERROR - No updated code to save for '/tmp/tmpg7e_fvll/docs.py'.
+2024-11-13 19:57:28,209 - docstring_workflow - INFO - Successfully loaded source code from '/tmp/tmpg7e_fvll/api_interaction.py'
+2024-11-13 19:57:28,230 - docstring_workflow - INFO - Azure OpenAI client initialized successfully
+2024-11-13 19:57:28,230 - docstring_workflow - INFO - Connected to Redis cache successfully
+2024-11-13 19:57:28,231 - docstring_workflow - INFO - Interaction Handler initialized with batch processing capability
+2024-11-13 19:57:28,236 - docstring_workflow - INFO - Cache miss for function ID: a52e9aa290ea0caae8ddf3129f7e94bf
+2024-11-13 19:57:28,236 - docstring_workflow - INFO - Function 'extract_section' has an incomplete docstring: ["Parameter 'text' not documented in Args section.", "Parameter 'section_name' not documented in Args section.", 'Missing Returns section.']
+2024-11-13 19:57:29,595 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:57:29,595 - docstring_workflow - ERROR - Content safety check failed for extract_section
+2024-11-13 19:57:29,595 - docstring_workflow - INFO - Cache miss for function ID: 35bc80da596342c5722d6cbb97b84cc9
+2024-11-13 19:57:29,595 - docstring_workflow - INFO - Function 'extract_parameter_section' has an incomplete docstring: ["Parameter 'text' not documented in Args section.", 'Missing Returns section.']
+2024-11-13 19:57:31,129 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:57:31,129 - docstring_workflow - ERROR - Content safety check failed for extract_parameter_section
+2024-11-13 19:57:31,129 - docstring_workflow - INFO - Cache miss for function ID: 5884386046447241c8c8f168d861747a
+2024-11-13 19:57:31,129 - docstring_workflow - INFO - Function 'extract_return_section' has an incomplete docstring: ["Parameter 'text' not documented in Args section.", 'Missing Returns section.']
+2024-11-13 19:57:32,484 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:57:32,484 - docstring_workflow - ERROR - Content safety check failed for extract_return_section
+2024-11-13 19:57:32,484 - docstring_workflow - INFO - Cache miss for function ID: 943354bb89f7c0c88c12f3ad2c12fcdd
+2024-11-13 19:57:32,484 - docstring_workflow - INFO - Function 'extract_code_examples' has an incomplete docstring: ["Parameter 'text' not documented in Args section.", 'Missing Returns section.']
+2024-11-13 19:57:33,788 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:57:33,788 - docstring_workflow - ERROR - Content safety check failed for extract_code_examples
+2024-11-13 19:57:33,788 - docstring_workflow - INFO - Cache miss for function ID: 2b048a8d22b3117071ddd47da99cc518
+2024-11-13 19:57:33,789 - docstring_workflow - INFO - Function 'format_response' has an incomplete docstring: ["Parameter 'sections' not documented in Args section.", 'Missing Returns section.']
+2024-11-13 19:57:35,235 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:57:35,235 - docstring_workflow - ERROR - Content safety check failed for format_response
+2024-11-13 19:57:35,235 - docstring_workflow - INFO - Cache miss for function ID: 74784b5204978384eb3ee3f65036a1c7
+2024-11-13 19:57:35,235 - docstring_workflow - INFO - Function '__init__' has no docstring.
+2024-11-13 19:57:36,651 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:57:36,651 - docstring_workflow - ERROR - Content safety check failed for __init__
+2024-11-13 19:57:36,651 - docstring_workflow - INFO - Cache miss for function ID: 9394a4b6b17c52035ba46a03f3f8eb55
+2024-11-13 19:57:36,651 - docstring_workflow - INFO - Function '_init_azure_client' has an incomplete docstring: ['Missing Returns section.']
+2024-11-13 19:57:38,113 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:57:38,113 - docstring_workflow - ERROR - Content safety check failed for _init_azure_client
+2024-11-13 19:57:38,113 - docstring_workflow - INFO - Cache miss for function ID: c329bfd7e3ed8d549633ed7b1099019f
+2024-11-13 19:57:38,114 - docstring_workflow - INFO - Function '_init_openai_client' has an incomplete docstring: ['Missing Returns section.']
+2024-11-13 19:57:39,383 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:57:39,383 - docstring_workflow - ERROR - Content safety check failed for _init_openai_client
+2024-11-13 19:57:39,383 - docstring_workflow - INFO - Cache miss for function ID: 98a6021f903dc8e27f959c4157bb1bb1
+2024-11-13 19:57:39,383 - docstring_workflow - INFO - Function '_init_anthropic_client' has an incomplete docstring: ['Missing Returns section.']
+2024-11-13 19:57:40,714 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:57:40,714 - docstring_workflow - ERROR - Content safety check failed for _init_anthropic_client
+2024-11-13 19:57:40,714 - docstring_workflow - INFO - Cache miss for function ID: d1f96ec80257ad75a3cd2d44ffa5a133
+2024-11-13 19:57:40,715 - docstring_workflow - INFO - Function 'parse_function_analysis' has an incomplete docstring: ["Parameter 'response' not documented in Args section.", 'Missing Returns section.']
+2024-11-13 19:57:42,128 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:57:42,128 - docstring_workflow - ERROR - Content safety check failed for parse_function_analysis
+2024-11-13 19:57:42,128 - docstring_workflow - INFO - Cache miss for function ID: ff5c6960042d86874ccb42283e037ea4
+2024-11-13 19:57:42,128 - docstring_workflow - INFO - Function 'get_default_response' has an incomplete docstring: ['Missing Returns section.']
+2024-11-13 19:57:43,357 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:57:43,357 - docstring_workflow - ERROR - Content safety check failed for get_default_response
+2024-11-13 19:57:43,357 - docstring_workflow - INFO - Cache miss for function ID: c4bfa29a026bee6b459187b9b79cd9b2
+2024-11-13 19:57:43,357 - docstring_workflow - INFO - Function '__init__' has no docstring.
+2024-11-13 19:57:44,765 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:57:44,765 - docstring_workflow - ERROR - Content safety check failed for __init__
+2024-11-13 19:57:44,766 - docstring_workflow - INFO - Cache miss for function ID: d207a452780e464ccdc06f54097af08b
+2024-11-13 19:57:44,766 - docstring_workflow - INFO - Function '_get_function_schema' has an incomplete docstring: ['Missing Returns section.']
+2024-11-13 19:57:46,154 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:57:46,155 - docstring_workflow - ERROR - Content safety check failed for _get_function_schema
+2024-11-13 19:57:46,155 - docstring_workflow - INFO - Cache miss for function ID: b69aba67eea4df928ecf749810b2561d
+2024-11-13 19:57:46,155 - docstring_workflow - INFO - Function '__init__' has no docstring.
+2024-11-13 19:57:47,551 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:57:47,551 - docstring_workflow - ERROR - Content safety check failed for __init__
+2024-11-13 19:57:47,560 - docstring_workflow - ERROR - Error in batch processing: DocStringManager.generate_markdown_documentation() missing 3 required positional arguments: 'module_name', 'file_path', and 'description'
+2024-11-13 19:57:47,560 - docstring_workflow - ERROR - No updated code to save for '/tmp/tmpg7e_fvll/api_interaction.py'.
+2024-11-13 19:57:47,560 - docstring_workflow - INFO - Successfully loaded source code from '/tmp/tmpg7e_fvll/documentation_analyzer.py'
+2024-11-13 19:57:47,582 - docstring_workflow - INFO - Azure OpenAI client initialized successfully
+2024-11-13 19:57:47,583 - docstring_workflow - INFO - Connected to Redis cache successfully
+2024-11-13 19:57:47,583 - docstring_workflow - INFO - Interaction Handler initialized with batch processing capability
+2024-11-13 19:57:47,585 - docstring_workflow - INFO - Cache miss for function ID: c4bfa29a026bee6b459187b9b79cd9b2
+2024-11-13 19:57:47,585 - docstring_workflow - INFO - Function '__init__' has no docstring.
+2024-11-13 19:57:48,924 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:57:48,925 - docstring_workflow - ERROR - Content safety check failed for __init__
+2024-11-13 19:57:48,929 - docstring_workflow - ERROR - Error in batch processing: DocStringManager.generate_markdown_documentation() missing 3 required positional arguments: 'module_name', 'file_path', and 'description'
+2024-11-13 19:57:48,930 - docstring_workflow - ERROR - No updated code to save for '/tmp/tmpg7e_fvll/documentation_analyzer.py'.
+2024-11-13 19:57:48,930 - docstring_workflow - INFO - Successfully loaded source code from '/tmp/tmpg7e_fvll/test_extract_code.py'
+2024-11-13 19:57:48,951 - docstring_workflow - INFO - Azure OpenAI client initialized successfully
+2024-11-13 19:57:48,951 - docstring_workflow - INFO - Connected to Redis cache successfully
+2024-11-13 19:57:48,951 - docstring_workflow - INFO - Interaction Handler initialized with batch processing capability
+2024-11-13 19:57:48,952 - docstring_workflow - ERROR - Error in batch processing: DocStringManager.generate_markdown_documentation() missing 3 required positional arguments: 'module_name', 'file_path', and 'description'
+2024-11-13 19:57:48,952 - docstring_workflow - ERROR - No updated code to save for '/tmp/tmpg7e_fvll/test_extract_code.py'.
+2024-11-13 19:57:48,952 - docstring_workflow - INFO - Successfully loaded source code from '/tmp/tmpg7e_fvll/files.py'
+2024-11-13 19:57:48,973 - docstring_workflow - INFO - Azure OpenAI client initialized successfully
+2024-11-13 19:57:48,974 - docstring_workflow - INFO - Connected to Redis cache successfully
+2024-11-13 19:57:48,974 - docstring_workflow - INFO - Interaction Handler initialized with batch processing capability
+2024-11-13 19:57:48,976 - docstring_workflow - INFO - Cache miss for function ID: b3c086a357f97480e0043a6d3586a8b5
+2024-11-13 19:57:48,977 - docstring_workflow - INFO - Function 'create_analyzer' has an incomplete docstring: ['Missing Returns section.']
+2024-11-13 19:57:50,251 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:57:50,251 - docstring_workflow - ERROR - Content safety check failed for create_analyzer
+2024-11-13 19:57:50,251 - docstring_workflow - INFO - Cache miss for function ID: 0db0d8ffbae86ae2f852297bb8eaec84
+2024-11-13 19:57:50,251 - docstring_workflow - INFO - Function '__init__' has no docstring.
+2024-11-13 19:57:51,567 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:57:51,567 - docstring_workflow - ERROR - Content safety check failed for __init__
+2024-11-13 19:57:51,567 - docstring_workflow - INFO - Cache miss for function ID: 74784b5204978384eb3ee3f65036a1c7
+2024-11-13 19:57:51,567 - docstring_workflow - INFO - Function '__init__' has no docstring.
+2024-11-13 19:57:52,963 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:57:52,963 - docstring_workflow - ERROR - Content safety check failed for __init__
+2024-11-13 19:57:52,967 - docstring_workflow - ERROR - Error in batch processing: DocStringManager.generate_markdown_documentation() missing 3 required positional arguments: 'module_name', 'file_path', and 'description'
+2024-11-13 19:57:52,967 - docstring_workflow - ERROR - No updated code to save for '/tmp/tmpg7e_fvll/files.py'.
+2024-11-13 19:57:52,967 - docstring_workflow - INFO - Successfully loaded source code from '/tmp/tmpg7e_fvll/cache.py'
+2024-11-13 19:57:52,988 - docstring_workflow - INFO - Azure OpenAI client initialized successfully
+2024-11-13 19:57:52,989 - docstring_workflow - INFO - Connected to Redis cache successfully
+2024-11-13 19:57:52,989 - docstring_workflow - INFO - Interaction Handler initialized with batch processing capability
+2024-11-13 19:57:52,991 - docstring_workflow - INFO - Cache miss for function ID: 28afb7609ef61ccacc94f39d8d7269ff
+2024-11-13 19:57:52,991 - docstring_workflow - INFO - Function 'create_cache_manager' has an incomplete docstring: ["Parameter 'cache_dir' not documented in Args section.", "Parameter 'max_cache_size_mb' not documented in Args section."]
+2024-11-13 19:57:54,305 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:57:54,305 - docstring_workflow - ERROR - Content safety check failed for create_cache_manager
+2024-11-13 19:57:54,305 - docstring_workflow - INFO - Cache miss for function ID: 1ddb1b0c18cc432cac9b08c50fd38a60
+2024-11-13 19:57:54,305 - docstring_workflow - INFO - Function 'index_path' has an incomplete docstring: ['Missing Returns section.']
+2024-11-13 19:57:55,638 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:57:55,638 - docstring_workflow - ERROR - Content safety check failed for index_path
+2024-11-13 19:57:55,638 - docstring_workflow - INFO - Cache miss for function ID: 2103f4c4562d0cb9c49fbbbe137908f4
+2024-11-13 19:57:55,638 - docstring_workflow - INFO - Function '__init__' has an incomplete docstring: ["Parameter 'config' not documented in Args section."]
+2024-11-13 19:57:57,195 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:57:57,195 - docstring_workflow - ERROR - Content safety check failed for __init__
+2024-11-13 19:57:57,195 - docstring_workflow - INFO - Cache miss for function ID: ec722119a881c03bde19b173cb2cb49f
+2024-11-13 19:57:57,195 - docstring_workflow - INFO - Function 'initialize_cache' has an incomplete docstring: ['Missing Returns section.', 'Missing Raises section for exceptions.']
+2024-11-13 19:57:58,475 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:57:58,475 - docstring_workflow - ERROR - Content safety check failed for initialize_cache
+2024-11-13 19:57:58,475 - docstring_workflow - INFO - Cache miss for function ID: aa2f40abb07981952a399c6f0cf6f006
+2024-11-13 19:57:58,475 - docstring_workflow - INFO - Function 'get_cache_path' has an incomplete docstring: ["Parameter 'key' not documented in Args section."]
+2024-11-13 19:57:59,836 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:57:59,836 - docstring_workflow - ERROR - Content safety check failed for get_cache_path
+2024-11-13 19:57:59,836 - docstring_workflow - INFO - Cache miss for function ID: c6d8599a1ee3ce19917710bc893bc150
+2024-11-13 19:57:59,836 - docstring_workflow - INFO - Function 'load_index' has a complete docstring.
+2024-11-13 19:57:59,836 - docstring_workflow - INFO - Docstring retained for function: load_index
+2024-11-13 19:57:59,837 - docstring_workflow - INFO - Cache miss for function ID: d0d343fdda01537504d878b068d44608
+2024-11-13 19:57:59,837 - docstring_workflow - INFO - Function 'save_index' has an incomplete docstring: ["Parameter 'index' not documented in Args section.", 'Missing Returns section.', 'Missing Raises section for exceptions.']
+2024-11-13 19:58:01,089 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:58:01,089 - docstring_workflow - ERROR - Content safety check failed for save_index
+2024-11-13 19:58:01,089 - docstring_workflow - INFO - Cache miss for function ID: 9afa578fe4d47c57a1d7cfa3e5c37737
+2024-11-13 19:58:01,089 - docstring_workflow - INFO - Function 'cache_response' has an incomplete docstring: ["Parameter 'key' not documented in Args section.", "Parameter 'data' not documented in Args section.", 'Missing Returns section.', 'Missing Raises section for exceptions.']
+2024-11-13 19:58:02,403 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:58:02,404 - docstring_workflow - ERROR - Content safety check failed for cache_response
+2024-11-13 19:58:02,404 - docstring_workflow - INFO - Cache miss for function ID: b4a0546d84c243008c4d542fd496bb27
+2024-11-13 19:58:02,404 - docstring_workflow - INFO - Function 'get_cached_response' has an incomplete docstring: ["Parameter 'key' not documented in Args section."]
+2024-11-13 19:58:03,748 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:58:03,748 - docstring_workflow - ERROR - Content safety check failed for get_cached_response
+2024-11-13 19:58:03,749 - docstring_workflow - INFO - Cache miss for function ID: d8bd9710b2bcd86af2caeb9833d71e55
+2024-11-13 19:58:03,749 - docstring_workflow - INFO - Function 'clear_old_entries' has an incomplete docstring: ["Parameter 'index' not documented in Args section.", 'Missing Returns section.']
+2024-11-13 19:58:05,120 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:58:05,120 - docstring_workflow - ERROR - Content safety check failed for clear_old_entries
+2024-11-13 19:58:05,123 - docstring_workflow - ERROR - Error inserting docstring: 'str' object has no attribute 'get'
+2024-11-13 19:58:05,125 - docstring_workflow - ERROR - Error in batch processing: DocStringManager.generate_markdown_documentation() missing 3 required positional arguments: 'module_name', 'file_path', and 'description'
+2024-11-13 19:58:05,125 - docstring_workflow - ERROR - No updated code to save for '/tmp/tmpg7e_fvll/cache.py'.
+2024-11-13 19:58:05,125 - docstring_workflow - INFO - Successfully loaded source code from '/tmp/tmpg7e_fvll/monitoring.py'
+2024-11-13 19:58:05,146 - docstring_workflow - INFO - Azure OpenAI client initialized successfully
+2024-11-13 19:58:05,147 - docstring_workflow - INFO - Connected to Redis cache successfully
+2024-11-13 19:58:05,147 - docstring_workflow - INFO - Interaction Handler initialized with batch processing capability
+2024-11-13 19:58:05,147 - docstring_workflow - INFO - Cache miss for function ID: e9d08e56df8bec5d5516bc6b32e4f023
+2024-11-13 19:58:05,148 - docstring_workflow - INFO - Function 'initialize_sentry' has no docstring.
+2024-11-13 19:58:06,570 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:58:06,570 - docstring_workflow - ERROR - Content safety check failed for initialize_sentry
+2024-11-13 19:58:06,570 - docstring_workflow - INFO - Cache miss for function ID: 95a72ac86e42ff1ffe66ac6c2e74b0e1
+2024-11-13 19:58:06,571 - docstring_workflow - INFO - Function 'capture_exception' has an incomplete docstring: ["Parameter 'exception' not documented in Args section."]
+2024-11-13 19:58:07,882 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:58:07,882 - docstring_workflow - ERROR - Content safety check failed for capture_exception
+2024-11-13 19:58:07,883 - docstring_workflow - ERROR - Error in batch processing: DocStringManager.generate_markdown_documentation() missing 3 required positional arguments: 'module_name', 'file_path', and 'description'
+2024-11-13 19:58:07,883 - docstring_workflow - ERROR - No updated code to save for '/tmp/tmpg7e_fvll/monitoring.py'.
+2024-11-13 19:58:07,884 - docstring_workflow - INFO - Successfully loaded source code from '/tmp/tmpg7e_fvll/main.py'
+2024-11-13 19:58:07,905 - docstring_workflow - INFO - Azure OpenAI client initialized successfully
+2024-11-13 19:58:07,906 - docstring_workflow - INFO - Connected to Redis cache successfully
+2024-11-13 19:58:07,906 - docstring_workflow - INFO - Interaction Handler initialized with batch processing capability
+2024-11-13 19:58:07,908 - docstring_workflow - INFO - Cache miss for function ID: 74784b5204978384eb3ee3f65036a1c7
+2024-11-13 19:58:07,908 - docstring_workflow - INFO - Function '__init__' has no docstring.
+2024-11-13 19:58:09,413 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:58:09,414 - docstring_workflow - ERROR - Content safety check failed for __init__
+2024-11-13 19:58:09,414 - docstring_workflow - INFO - Cache miss for function ID: 4047595e16dcf51ffd5cd8ddb36ab39d
+2024-11-13 19:58:09,414 - docstring_workflow - INFO - Function 'validate_repo_url' has an incomplete docstring: ["Parameter 'url' not documented in Args section.", 'Missing Returns section.']
+2024-11-13 19:58:10,768 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:58:10,768 - docstring_workflow - ERROR - Content safety check failed for validate_repo_url
+2024-11-13 19:58:10,768 - docstring_workflow - INFO - Cache miss for function ID: 4a70b587be3f228140889979758b421d
+2024-11-13 19:58:10,768 - docstring_workflow - INFO - Function 'validate_environment' has an incomplete docstring: ["Parameter 'service' not documented in Args section.", 'Missing Returns section.', 'Missing Raises section for exceptions.']
+2024-11-13 19:58:12,127 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:58:12,128 - docstring_workflow - ERROR - Content safety check failed for validate_environment
+2024-11-13 19:58:12,128 - docstring_workflow - INFO - Cache miss for function ID: 15c2f70bd01a9aee49f2ea1463d30a33
+2024-11-13 19:58:12,128 - docstring_workflow - INFO - Function '_log_summary' has an incomplete docstring: ['Missing Returns section.']
+2024-11-13 19:58:13,477 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:58:13,477 - docstring_workflow - ERROR - Content safety check failed for _log_summary
+2024-11-13 19:58:13,484 - docstring_workflow - ERROR - Error in batch processing: DocStringManager.generate_markdown_documentation() missing 3 required positional arguments: 'module_name', 'file_path', and 'description'
+2024-11-13 19:58:13,484 - docstring_workflow - ERROR - No updated code to save for '/tmp/tmpg7e_fvll/main.py'.
+2024-11-13 19:58:13,484 - docstring_workflow - INFO - Successfully loaded source code from '/tmp/tmpg7e_fvll/extract/functions.py'
+2024-11-13 19:58:13,505 - docstring_workflow - INFO - Azure OpenAI client initialized successfully
+2024-11-13 19:58:13,506 - docstring_workflow - INFO - Connected to Redis cache successfully
+2024-11-13 19:58:13,506 - docstring_workflow - INFO - Interaction Handler initialized with batch processing capability
+2024-11-13 19:58:13,507 - docstring_workflow - INFO - Cache miss for function ID: 6117db1cc77c3cfd6570738f4ad9c233
+2024-11-13 19:58:13,508 - docstring_workflow - INFO - Function '__init__' has an incomplete docstring: ["Parameter 'node' not documented in Args section.", "Parameter 'content' not documented in Args section."]
+2024-11-13 19:58:14,781 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:58:14,781 - docstring_workflow - ERROR - Content safety check failed for __init__
+2024-11-13 19:58:14,781 - docstring_workflow - INFO - Cache miss for function ID: 7fee9190eedba3e15b66e27ad9b8abd3
+2024-11-13 19:58:14,781 - docstring_workflow - INFO - Function 'extract_details' has an incomplete docstring: ['Missing Returns section.']
+2024-11-13 19:58:16,179 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:58:16,180 - docstring_workflow - ERROR - Content safety check failed for extract_details
+2024-11-13 19:58:16,180 - docstring_workflow - INFO - Cache miss for function ID: 06bedc8972b763020e4fa3aa97cea830
+2024-11-13 19:58:16,180 - docstring_workflow - INFO - Function 'extract_parameters' has an incomplete docstring: ['Missing Returns section.']
+2024-11-13 19:58:17,599 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:58:17,599 - docstring_workflow - ERROR - Content safety check failed for extract_parameters
+2024-11-13 19:58:17,599 - docstring_workflow - INFO - Cache miss for function ID: 3209776fa9ad73f382c56737ab1f0e4a
+2024-11-13 19:58:17,599 - docstring_workflow - INFO - Function 'calculate_complexity' has an incomplete docstring: ['Missing Returns section.']
+2024-11-13 19:58:18,966 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:58:18,966 - docstring_workflow - ERROR - Content safety check failed for calculate_complexity
+2024-11-13 19:58:18,966 - docstring_workflow - INFO - Cache miss for function ID: 0c1e38d394fffcb34bec51b33c01216d
+2024-11-13 19:58:18,966 - docstring_workflow - INFO - Function 'calculate_cognitive_complexity' has an incomplete docstring: ['Missing Returns section.']
+2024-11-13 19:58:20,159 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:58:20,159 - docstring_workflow - ERROR - Content safety check failed for calculate_cognitive_complexity
+2024-11-13 19:58:20,159 - docstring_workflow - INFO - Cache miss for function ID: 0d87449cad6705c22b7753fca07acd6d
+2024-11-13 19:58:20,159 - docstring_workflow - INFO - Function 'calculate_halstead_metrics' has an incomplete docstring: ['Missing Returns section.']
+2024-11-13 19:58:21,488 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:58:21,488 - docstring_workflow - ERROR - Content safety check failed for calculate_halstead_metrics
+2024-11-13 19:58:21,488 - docstring_workflow - INFO - Cache miss for function ID: 31ddfe495163abbbdd7ab33060fb49cd
+2024-11-13 19:58:21,489 - docstring_workflow - INFO - Function '_extract_return_annotation' has an incomplete docstring: ['Missing Returns section.']
+2024-11-13 19:58:22,883 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:58:22,883 - docstring_workflow - ERROR - Content safety check failed for _extract_return_annotation
+2024-11-13 19:58:22,883 - docstring_workflow - INFO - Cache miss for function ID: 9f03036c4c20a783470249f2dec67dce
+2024-11-13 19:58:22,884 - docstring_workflow - INFO - Function 'is_async' has an incomplete docstring: ['Missing Returns section.']
+2024-11-13 19:58:24,346 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:58:24,347 - docstring_workflow - ERROR - Content safety check failed for is_async
+2024-11-13 19:58:24,347 - docstring_workflow - INFO - Cache miss for function ID: 0dd15cc8e9b3bc9f63cdd8df56532643
+2024-11-13 19:58:24,347 - docstring_workflow - INFO - Function 'is_generator' has an incomplete docstring: ['Missing Returns section.']
+2024-11-13 19:58:25,556 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:58:25,557 - docstring_workflow - ERROR - Content safety check failed for is_generator
+2024-11-13 19:58:25,557 - docstring_workflow - INFO - Cache miss for function ID: b0a82e182ea67ea233754fa2c1ef7289
+2024-11-13 19:58:25,557 - docstring_workflow - INFO - Function 'is_recursive' has an incomplete docstring: ['Missing Returns section.']
+2024-11-13 19:58:26,957 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:58:26,958 - docstring_workflow - ERROR - Content safety check failed for is_recursive
+2024-11-13 19:58:26,958 - docstring_workflow - INFO - Cache miss for function ID: 27c2eeff54f79357f7365877ce13a64e
+2024-11-13 19:58:26,959 - docstring_workflow - INFO - Function '_generate_summary' has an incomplete docstring: ["Parameter 'complexity' not documented in Args section.", "Parameter 'cognitive' not documented in Args section.", "Parameter 'halstead' not documented in Args section.", 'Missing Returns section.']
+2024-11-13 19:58:28,465 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:58:28,466 - docstring_workflow - ERROR - Content safety check failed for _generate_summary
+2024-11-13 19:58:28,469 - docstring_workflow - ERROR - Error in batch processing: DocStringManager.generate_markdown_documentation() missing 3 required positional arguments: 'module_name', 'file_path', and 'description'
+2024-11-13 19:58:28,470 - docstring_workflow - ERROR - No updated code to save for '/tmp/tmpg7e_fvll/extract/functions.py'.
+2024-11-13 19:58:28,470 - docstring_workflow - INFO - Successfully loaded source code from '/tmp/tmpg7e_fvll/extract/metrics.py'
+2024-11-13 19:58:28,491 - docstring_workflow - INFO - Azure OpenAI client initialized successfully
+2024-11-13 19:58:28,492 - docstring_workflow - INFO - Connected to Redis cache successfully
+2024-11-13 19:58:28,492 - docstring_workflow - INFO - Interaction Handler initialized with batch processing capability
+2024-11-13 19:58:28,495 - docstring_workflow - INFO - Cache miss for function ID: 74784b5204978384eb3ee3f65036a1c7
+2024-11-13 19:58:28,495 - docstring_workflow - INFO - Function '__init__' has no docstring.
+2024-11-13 19:58:29,972 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:58:29,972 - docstring_workflow - ERROR - Content safety check failed for __init__
+2024-11-13 19:58:29,972 - docstring_workflow - INFO - Cache miss for function ID: 6517444d259d3ee73a223d53e179e946
+2024-11-13 19:58:29,973 - docstring_workflow - INFO - Function 'calculate_complexity' has an incomplete docstring: ["Parameter 'node' not documented in Args section."]
+2024-11-13 19:58:31,362 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:58:31,362 - docstring_workflow - ERROR - Content safety check failed for calculate_complexity
+2024-11-13 19:58:31,362 - docstring_workflow - INFO - Cache miss for function ID: 82f574aeec360b46a303807f869f007a
+2024-11-13 19:58:31,363 - docstring_workflow - INFO - Function 'calculate_cognitive_complexity' has an incomplete docstring: ["Parameter 'node' not documented in Args section."]
+2024-11-13 19:58:32,852 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:58:32,852 - docstring_workflow - ERROR - Content safety check failed for calculate_cognitive_complexity
+2024-11-13 19:58:32,852 - docstring_workflow - INFO - Cache miss for function ID: 77487bdb35c68a1c827e2b28e6ef2e81
+2024-11-13 19:58:32,853 - docstring_workflow - INFO - Function 'calculate_halstead_metrics' has an incomplete docstring: ["Parameter 'node' not documented in Args section."]
+2024-11-13 19:58:34,208 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:58:34,208 - docstring_workflow - ERROR - Content safety check failed for calculate_halstead_metrics
+2024-11-13 19:58:34,208 - docstring_workflow - INFO - Cache miss for function ID: e70e52f7861a03bc299bffedb0be48eb
+2024-11-13 19:58:34,208 - docstring_workflow - INFO - Function 'analyze_function_quality' has an incomplete docstring: ["Parameter 'function_info' not documented in Args section.", 'Missing Returns section.']
+2024-11-13 19:58:35,585 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:58:35,586 - docstring_workflow - ERROR - Content safety check failed for analyze_function_quality
+2024-11-13 19:58:35,586 - docstring_workflow - INFO - Cache miss for function ID: 7ffaf27e9bcc5fb90051a5c7e1285343
+2024-11-13 19:58:35,586 - docstring_workflow - INFO - Function 'analyze_class_quality' has an incomplete docstring: ["Parameter 'class_info' not documented in Args section.", 'Missing Returns section.']
+2024-11-13 19:58:36,929 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:58:36,929 - docstring_workflow - ERROR - Content safety check failed for analyze_class_quality
+2024-11-13 19:58:36,929 - docstring_workflow - INFO - Cache miss for function ID: 8ee55211577c5adef874a7a1fdb75c7e
+2024-11-13 19:58:36,929 - docstring_workflow - INFO - Function 'update_type_hint_stats' has an incomplete docstring: ["Parameter 'function_info' not documented in Args section.", 'Missing Returns section.']
+2024-11-13 19:58:38,235 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:58:38,235 - docstring_workflow - ERROR - Content safety check failed for update_type_hint_stats
+2024-11-13 19:58:38,235 - docstring_workflow - INFO - Cache miss for function ID: 29793ef59d864d16969eafca4c33c3bd
+2024-11-13 19:58:38,236 - docstring_workflow - INFO - Function 'calculate_final_metrics' has an incomplete docstring: ["Parameter 'all_items' not documented in Args section.", 'Missing Returns section.']
+2024-11-13 19:58:39,520 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:58:39,520 - docstring_workflow - ERROR - Content safety check failed for calculate_final_metrics
+2024-11-13 19:58:39,521 - docstring_workflow - INFO - Cache miss for function ID: 1e4acc52d83e59f1adc02ad0e6bbfe3c
+2024-11-13 19:58:39,521 - docstring_workflow - INFO - Function 'get_summary' has a complete docstring.
+2024-11-13 19:58:39,521 - docstring_workflow - INFO - Docstring retained for function: get_summary
+2024-11-13 19:58:39,521 - docstring_workflow - INFO - Cache miss for function ID: 74784b5204978384eb3ee3f65036a1c7
+2024-11-13 19:58:39,521 - docstring_workflow - INFO - Function '__init__' has no docstring.
+2024-11-13 19:58:41,012 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:58:41,012 - docstring_workflow - ERROR - Content safety check failed for __init__
+2024-11-13 19:58:41,012 - docstring_workflow - INFO - Cache miss for function ID: db1b747b78b0e5f137be6ffdaa109623
+2024-11-13 19:58:41,012 - docstring_workflow - INFO - Function 'visit_If' has no docstring.
+2024-11-13 19:58:42,435 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:58:42,435 - docstring_workflow - ERROR - Content safety check failed for visit_If
+2024-11-13 19:58:42,435 - docstring_workflow - INFO - Cache miss for function ID: 9cd6933eaaf48a278f2bfd5a063e115f
+2024-11-13 19:58:42,435 - docstring_workflow - INFO - Function 'visit_For' has no docstring.
+2024-11-13 19:58:43,866 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:58:43,866 - docstring_workflow - ERROR - Content safety check failed for visit_For
+2024-11-13 19:58:43,866 - docstring_workflow - INFO - Cache miss for function ID: 4a80eeb4833dd059447dd92c2324ca38
+2024-11-13 19:58:43,866 - docstring_workflow - INFO - Function 'visit_While' has no docstring.
+2024-11-13 19:58:45,192 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:58:45,192 - docstring_workflow - ERROR - Content safety check failed for visit_While
+2024-11-13 19:58:45,192 - docstring_workflow - INFO - Cache miss for function ID: 557061a2f8b3d1da6bb5e56344113028
+2024-11-13 19:58:45,192 - docstring_workflow - INFO - Function 'visit_BoolOp' has no docstring.
+2024-11-13 19:58:46,573 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:58:46,573 - docstring_workflow - ERROR - Content safety check failed for visit_BoolOp
+2024-11-13 19:58:46,574 - docstring_workflow - INFO - Cache miss for function ID: 9e4858cc64aac3d4c2fa2aa3f1a29618
+2024-11-13 19:58:46,574 - docstring_workflow - INFO - Function 'visit_Try' has no docstring.
+2024-11-13 19:58:48,051 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:58:48,051 - docstring_workflow - ERROR - Content safety check failed for visit_Try
+2024-11-13 19:58:48,051 - docstring_workflow - INFO - Cache miss for function ID: 9a91148690392e6189449993d0455535
+2024-11-13 19:58:48,051 - docstring_workflow - INFO - Function 'visit_Return' has no docstring.
+2024-11-13 19:58:49,399 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:58:49,399 - docstring_workflow - ERROR - Content safety check failed for visit_Return
+2024-11-13 19:58:49,399 - docstring_workflow - INFO - Cache miss for function ID: 74784b5204978384eb3ee3f65036a1c7
+2024-11-13 19:58:49,399 - docstring_workflow - INFO - Function '__init__' has no docstring.
+2024-11-13 19:58:50,706 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:58:50,707 - docstring_workflow - ERROR - Content safety check failed for __init__
+2024-11-13 19:58:50,707 - docstring_workflow - INFO - Cache miss for function ID: 2bcc35ff08cef7719210dd483a8ebf15
+2024-11-13 19:58:50,707 - docstring_workflow - INFO - Function 'visit_BinOp' has no docstring.
+2024-11-13 19:58:52,158 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:58:52,158 - docstring_workflow - ERROR - Content safety check failed for visit_BinOp
+2024-11-13 19:58:52,158 - docstring_workflow - INFO - Cache miss for function ID: f0cb11b5c20389cfb29177ab219bba33
+2024-11-13 19:58:52,158 - docstring_workflow - INFO - Function 'visit_UnaryOp' has no docstring.
+2024-11-13 19:58:53,615 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:58:53,615 - docstring_workflow - ERROR - Content safety check failed for visit_UnaryOp
+2024-11-13 19:58:53,616 - docstring_workflow - INFO - Cache miss for function ID: 557061a2f8b3d1da6bb5e56344113028
+2024-11-13 19:58:53,616 - docstring_workflow - INFO - Function 'visit_BoolOp' has no docstring.
+2024-11-13 19:58:54,951 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:58:54,951 - docstring_workflow - ERROR - Content safety check failed for visit_BoolOp
+2024-11-13 19:58:54,951 - docstring_workflow - INFO - Cache miss for function ID: 4cbc9879ad805073e09b3a33b6772511
+2024-11-13 19:58:54,951 - docstring_workflow - INFO - Function 'visit_Compare' has no docstring.
+2024-11-13 19:58:56,339 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:58:56,339 - docstring_workflow - ERROR - Content safety check failed for visit_Compare
+2024-11-13 19:58:56,340 - docstring_workflow - INFO - Cache miss for function ID: f422f2888d68b000ffb425f3b87ac077
+2024-11-13 19:58:56,340 - docstring_workflow - INFO - Function 'visit_Name' has no docstring.
+2024-11-13 19:58:57,761 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:58:57,761 - docstring_workflow - ERROR - Content safety check failed for visit_Name
+2024-11-13 19:58:57,761 - docstring_workflow - INFO - Cache miss for function ID: 2ab3cf745a9bec44647d005145ef4df3
+2024-11-13 19:58:57,761 - docstring_workflow - INFO - Function 'visit_Constant' has no docstring.
+2024-11-13 19:58:59,019 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:58:59,019 - docstring_workflow - ERROR - Content safety check failed for visit_Constant
+2024-11-13 19:58:59,022 - docstring_workflow - ERROR - Error inserting docstring: 'str' object has no attribute 'get'
+2024-11-13 19:58:59,026 - docstring_workflow - ERROR - Error in batch processing: DocStringManager.generate_markdown_documentation() missing 3 required positional arguments: 'module_name', 'file_path', and 'description'
+2024-11-13 19:58:59,026 - docstring_workflow - ERROR - No updated code to save for '/tmp/tmpg7e_fvll/extract/metrics.py'.
+2024-11-13 19:58:59,026 - docstring_workflow - INFO - Successfully loaded source code from '/tmp/tmpg7e_fvll/extract/base.py'
+2024-11-13 19:58:59,048 - docstring_workflow - INFO - Azure OpenAI client initialized successfully
+2024-11-13 19:58:59,048 - docstring_workflow - INFO - Connected to Redis cache successfully
+2024-11-13 19:58:59,049 - docstring_workflow - INFO - Interaction Handler initialized with batch processing capability
+2024-11-13 19:58:59,049 - docstring_workflow - INFO - Cache miss for function ID: 6117db1cc77c3cfd6570738f4ad9c233
+2024-11-13 19:58:59,049 - docstring_workflow - INFO - Function '__init__' has an incomplete docstring: ["Parameter 'node' not documented in Args section.", "Parameter 'content' not documented in Args section.", 'Missing Returns section.']
+2024-11-13 19:59:00,393 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:59:00,393 - docstring_workflow - ERROR - Content safety check failed for __init__
+2024-11-13 19:59:00,393 - docstring_workflow - INFO - Cache miss for function ID: 7fee9190eedba3e15b66e27ad9b8abd3
+2024-11-13 19:59:00,394 - docstring_workflow - INFO - Function 'extract_details' has an incomplete docstring: ['Missing Returns section.']
+2024-11-13 19:59:01,639 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:59:01,639 - docstring_workflow - ERROR - Content safety check failed for extract_details
+2024-11-13 19:59:01,639 - docstring_workflow - INFO - Cache miss for function ID: 757947711dfda273beb15e4b114bed12
+2024-11-13 19:59:01,639 - docstring_workflow - INFO - Function 'get_docstring' has an incomplete docstring: ['Missing Returns section.']
+2024-11-13 19:59:02,928 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:59:02,928 - docstring_workflow - ERROR - Content safety check failed for get_docstring
+2024-11-13 19:59:02,928 - docstring_workflow - INFO - Cache miss for function ID: f151eee645956fcb2b466037cc9b73f2
+2024-11-13 19:59:02,928 - docstring_workflow - INFO - Function 'get_source_segment' has an incomplete docstring: ["Parameter 'node' not documented in Args section.", 'Missing Returns section.']
+2024-11-13 19:59:04,267 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:59:04,267 - docstring_workflow - ERROR - Content safety check failed for get_source_segment
+2024-11-13 19:59:04,267 - docstring_workflow - INFO - Cache miss for function ID: 11fb4bd7ee4c5cc7304dcaf106719113
+2024-11-13 19:59:04,268 - docstring_workflow - INFO - Function '_get_empty_details' has an incomplete docstring: ['Missing Returns section.']
+2024-11-13 19:59:05,650 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:59:05,650 - docstring_workflow - ERROR - Content safety check failed for _get_empty_details
+2024-11-13 19:59:05,651 - docstring_workflow - ERROR - Error in batch processing: DocStringManager.generate_markdown_documentation() missing 3 required positional arguments: 'module_name', 'file_path', and 'description'
+2024-11-13 19:59:05,651 - docstring_workflow - ERROR - No updated code to save for '/tmp/tmpg7e_fvll/extract/base.py'.
+2024-11-13 19:59:05,652 - docstring_workflow - INFO - Successfully loaded source code from '/tmp/tmpg7e_fvll/extract/__init__.py'
+2024-11-13 19:59:05,673 - docstring_workflow - INFO - Azure OpenAI client initialized successfully
+2024-11-13 19:59:05,673 - docstring_workflow - INFO - Connected to Redis cache successfully
+2024-11-13 19:59:05,673 - docstring_workflow - INFO - Interaction Handler initialized with batch processing capability
+2024-11-13 19:59:05,674 - docstring_workflow - ERROR - Error in batch processing: DocStringManager.generate_markdown_documentation() missing 3 required positional arguments: 'module_name', 'file_path', and 'description'
+2024-11-13 19:59:05,674 - docstring_workflow - ERROR - No updated code to save for '/tmp/tmpg7e_fvll/extract/__init__.py'.
+2024-11-13 19:59:05,674 - docstring_workflow - INFO - Successfully loaded source code from '/tmp/tmpg7e_fvll/extract/classes.py'
+2024-11-13 19:59:05,695 - docstring_workflow - INFO - Azure OpenAI client initialized successfully
+2024-11-13 19:59:05,695 - docstring_workflow - INFO - Connected to Redis cache successfully
+2024-11-13 19:59:05,696 - docstring_workflow - INFO - Interaction Handler initialized with batch processing capability
+2024-11-13 19:59:05,699 - docstring_workflow - INFO - Cache miss for function ID: 88cb1ac3e22bebf14ad94d779fd70a9b
+2024-11-13 19:59:05,699 - docstring_workflow - INFO - Function 'extract_classes_from_ast' has an incomplete docstring: ["Parameter 'tree' not documented in Args section.", "Parameter 'content' not documented in Args section."]
+2024-11-13 19:59:06,964 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:59:06,965 - docstring_workflow - ERROR - Content safety check failed for extract_classes_from_ast
+2024-11-13 19:59:06,965 - docstring_workflow - INFO - Cache miss for function ID: 7fee9190eedba3e15b66e27ad9b8abd3
+2024-11-13 19:59:06,965 - docstring_workflow - INFO - Function 'extract_details' has an incomplete docstring: ['Missing Returns section.']
+2024-11-13 19:59:08,341 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:59:08,341 - docstring_workflow - ERROR - Content safety check failed for extract_details
+2024-11-13 19:59:08,341 - docstring_workflow - INFO - Cache miss for function ID: 458b22a0eefd117e05cd228859bc99e3
+2024-11-13 19:59:08,342 - docstring_workflow - INFO - Function '_get_full_qualified_name' has an incomplete docstring: ["Parameter 'node' not documented in Args section.", 'Missing Returns section.']
+2024-11-13 19:59:09,802 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:59:09,803 - docstring_workflow - ERROR - Content safety check failed for _get_full_qualified_name
+2024-11-13 19:59:09,803 - docstring_workflow - INFO - Cache miss for function ID: 006e86e5e23f82c6facaf96a434995f0
+2024-11-13 19:59:09,803 - docstring_workflow - INFO - Function 'extract_methods' has an incomplete docstring: ['Missing Returns section.']
+2024-11-13 19:59:11,192 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:59:11,192 - docstring_workflow - ERROR - Content safety check failed for extract_methods
+2024-11-13 19:59:11,193 - docstring_workflow - INFO - Cache miss for function ID: 2d548acde00c2424fc04fbee29378825
+2024-11-13 19:59:11,193 - docstring_workflow - INFO - Function 'extract_attributes' has an incomplete docstring: ['Missing Returns section.']
+2024-11-13 19:59:12,477 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:59:12,477 - docstring_workflow - ERROR - Content safety check failed for extract_attributes
+2024-11-13 19:59:12,478 - docstring_workflow - INFO - Cache miss for function ID: 83a31dc26106dd64d73d315b73a3e6ce
+2024-11-13 19:59:12,478 - docstring_workflow - INFO - Function 'extract_instance_variables' has an incomplete docstring: ['Missing Returns section.']
+2024-11-13 19:59:13,793 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:59:13,793 - docstring_workflow - ERROR - Content safety check failed for extract_instance_variables
+2024-11-13 19:59:13,793 - docstring_workflow - INFO - Cache miss for function ID: 4df4802658e5150f2a08e8fc947dba41
+2024-11-13 19:59:13,793 - docstring_workflow - INFO - Function '_generate_summary' has an incomplete docstring: ['Missing Returns section.']
+2024-11-13 19:59:15,201 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:59:15,201 - docstring_workflow - ERROR - Content safety check failed for _generate_summary
+2024-11-13 19:59:15,205 - docstring_workflow - ERROR - Error in batch processing: DocStringManager.generate_markdown_documentation() missing 3 required positional arguments: 'module_name', 'file_path', and 'description'
+2024-11-13 19:59:15,205 - docstring_workflow - ERROR - No updated code to save for '/tmp/tmpg7e_fvll/extract/classes.py'.
+2024-11-13 19:59:15,205 - docstring_workflow - INFO - Successfully loaded source code from '/tmp/tmpg7e_fvll/extract/code.py'
+2024-11-13 19:59:15,226 - docstring_workflow - INFO - Azure OpenAI client initialized successfully
+2024-11-13 19:59:15,227 - docstring_workflow - INFO - Connected to Redis cache successfully
+2024-11-13 19:59:15,227 - docstring_workflow - INFO - Interaction Handler initialized with batch processing capability
+2024-11-13 19:59:15,231 - docstring_workflow - INFO - Cache miss for function ID: 6918e3a706278e0511bffb7793e01115
+2024-11-13 19:59:15,231 - docstring_workflow - INFO - Function 'extract_classes_and_functions_from_ast' has an incomplete docstring: ["Parameter 'tree' not documented in Args section.", "Parameter 'content' not documented in Args section."]
+2024-11-13 19:59:16,486 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:59:16,486 - docstring_workflow - ERROR - Content safety check failed for extract_classes_and_functions_from_ast
+2024-11-13 19:59:16,486 - docstring_workflow - INFO - Cache miss for function ID: bbed864839e43dbfe16d546bfa6fb1b1
+2024-11-13 19:59:16,487 - docstring_workflow - INFO - Function 'get_full_qualified_name' has an incomplete docstring: ["Parameter 'node' not documented in Args section.", 'Missing Returns section.']
+2024-11-13 19:59:17,883 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:59:17,883 - docstring_workflow - ERROR - Content safety check failed for get_full_qualified_name
+2024-11-13 19:59:17,885 - docstring_workflow - ERROR - Error in batch processing: DocStringManager.generate_markdown_documentation() missing 3 required positional arguments: 'module_name', 'file_path', and 'description'
+2024-11-13 19:59:17,886 - docstring_workflow - ERROR - No updated code to save for '/tmp/tmpg7e_fvll/extract/code.py'.
+2024-11-13 19:59:17,886 - docstring_workflow - INFO - Successfully loaded source code from '/tmp/tmpg7e_fvll/core/logger.py'
+2024-11-13 19:59:17,907 - docstring_workflow - INFO - Azure OpenAI client initialized successfully
+2024-11-13 19:59:17,908 - docstring_workflow - INFO - Connected to Redis cache successfully
+2024-11-13 19:59:17,908 - docstring_workflow - INFO - Interaction Handler initialized with batch processing capability
+2024-11-13 19:59:17,909 - docstring_workflow - INFO - Cache miss for function ID: a1c20a02869adae263ea3abc759538d8
+2024-11-13 19:59:17,909 - docstring_workflow - INFO - Function 'get_logger' has an incomplete docstring: ["Parameter 'module_name' not documented in Args section.", "Parameter 'console_logging' not documented in Args section."]
+2024-11-13 19:59:19,193 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:59:19,193 - docstring_workflow - ERROR - Content safety check failed for get_logger
+2024-11-13 19:59:19,193 - docstring_workflow - INFO - Cache miss for function ID: 980922e06995300d23ebf7d33db06d91
+2024-11-13 19:59:19,194 - docstring_workflow - INFO - Function '_add_file_handler' has an incomplete docstring: ["Parameter 'logger' not documented in Args section.", "Parameter 'module_name' not documented in Args section.", 'Missing Returns section.']
+2024-11-13 19:59:20,585 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:59:20,585 - docstring_workflow - ERROR - Content safety check failed for _add_file_handler
+2024-11-13 19:59:20,585 - docstring_workflow - INFO - Cache miss for function ID: 0ce60f711a71fbbee7d44c23f3ac360e
+2024-11-13 19:59:20,585 - docstring_workflow - INFO - Function '_add_console_handler' has an incomplete docstring: ["Parameter 'logger' not documented in Args section.", 'Missing Returns section.']
+2024-11-13 19:59:22,066 - docstring_workflow - ERROR - Content safety check failed: Connection error.
+2024-11-13 19:59:22,066 - docstring_workflow - ERROR - Content safety check failed for _add_console_handler
+2024-11-13 19:59:22,067 - docstring_workflow - ERROR - Error in batch processing: DocStringManager.generate_markdown_documentation() missing 3 required positional arguments: 'module_name', 'file_path', and 'description'
+2024-11-13 19:59:22,068 - docstring_workflow - ERROR - No updated code to save for '/tmp/tmpg7e_fvll/core/logger.py'.
+2024-11-13 19:59:22,068 - docstring_workflow - INFO - Successfully loaded source code from '/tmp/tmpg7e_fvll/core/__init__.py'
+2024-11-13 19:59:22,089 - docstring_workflow - INFO - Azure OpenAI client initialized successfully
+2024-11-13 19:59:22,090 - docstring_workflow - INFO - Connected to Redis cache successfully
+2024-11-13 19:59:22,090 - docstring_workflow - INFO - Interaction Handler initialized with batch processing capability
+2024-11-13 19:59:22,090 - docstring_workflow - ERROR - Error in batch processing: DocStringManager.generate_markdown_documentation() missing 3 required positional arguments: 'module_name', 'file_path', and 'description'
+2024-11-13 19:59:22,090 - docstring_workflow - ERROR - No updated code to save for '/tmp/tmpg7e_fvll/core/__init__.py'.

@@ -1,335 +1,419 @@
+#!/usr/bin/env python3
+"""
+docs.py - Documentation Generation System
+
+This module provides a comprehensive system for generating documentation from Python source code,
+including docstring management, markdown generation, and documentation workflow automation.
+"""
+
 import os
 import ast
-from typing import List, Dict, Optional
+import logging
+import inspect
+import importlib
+from typing import Optional, Dict, Any, List, Union, Tuple
+from pathlib import Path
+from datetime import datetime
 
-import jsonschema
-from jsonschema import validate
-from schema import (
-    DocstringSchema,
-    DocstringParameter,
-    DocstringReturns,
-    DocstringException,
-    JSON_SCHEMA
-)
-from logger import log_info, log_error
+class DocStringParser:
+    """Handles parsing and extraction of docstrings from Python source code."""
+    
+    @staticmethod
+    def extract_docstring(source_code: str) -> Optional[str]:
+        """
+        Extract the module-level docstring from source code.
 
+        Args:
+            source_code (str): The source code to parse
 
-class DocStringManager:
-    """Manages docstring generation and documentation using the schema."""
+        Returns:
+            Optional[str]: The extracted docstring or None if not found
+        """
+        try:
+            tree = ast.parse(source_code)
+            return ast.get_docstring(tree)
+        except Exception as e:
+            logging.error(f"Failed to parse source code: {e}")
+            return None
 
-    def __init__(self, source_code: str):
-        self.source_code = source_code
-        self.schema = JSON_SCHEMA
-        self.tree = ast.parse(source_code)
+    @staticmethod
+    def parse_function_docstring(func) -> Dict[str, Any]:
+        """
+        Parse function docstring into structured format.
 
-    def generate_markdown_documentation(
-        self,
-        docstring_data: List[DocstringSchema],
-        module_name: str,
-        file_path: str,
-        description: str
+        Args:
+            func: The function object to parse
+
+        Returns:
+            Dict[str, Any]: Structured docstring information
+        """
+        doc = inspect.getdoc(func)
+        if not doc:
+            return {}
+
+        sections = {
+            'description': '',
+            'args': {},
+            'returns': '',
+            'raises': [],
+            'examples': []
+        }
+
+        current_section = 'description'
+        lines = doc.split('\n')
+
+        for line in lines:
+            line = line.strip()
+            if line.lower().startswith('args:'):
+                current_section = 'args'
+                continue
+            elif line.lower().startswith('returns:'):
+                current_section = 'returns'
+                continue
+            elif line.lower().startswith('raises:'):
+                current_section = 'raises'
+                continue
+            elif line.lower().startswith('example'):
+                current_section = 'examples'
+                continue
+
+            if current_section == 'description' and line:
+                sections['description'] += line + ' '
+            elif current_section == 'args' and line:
+                if ':' in line:
+                    param, desc = line.split(':', 1)
+                    sections['args'][param.strip()] = desc.strip()
+            elif current_section == 'returns' and line:
+                sections['returns'] += line + ' '
+            elif current_section == 'raises' and line:
+                sections['raises'].append(line)
+            elif current_section == 'examples' and line:
+                sections['examples'].append(line)
+
+        return sections
+
+class DocStringGenerator:
+    """Generates docstrings for Python code elements."""
+
+    @staticmethod
+    def generate_class_docstring(class_name: str, description: str) -> str:
+        """
+        Generate a docstring for a class.
+
+        Args:
+            class_name (str): Name of the class
+            description (str): Description of the class purpose
+
+        Returns:
+            str: Generated docstring
+        """
+        return f'"""{description}\n\nAttributes:\n    Add class attributes here\n"""'
+
+    @staticmethod
+    def generate_function_docstring(
+        func_name: str,
+        params: List[str],
+        description: str,
+        returns: Optional[str] = None
     ) -> str:
         """
-        Generate markdown documentation from schema-validated docstring data.
+        Generate a docstring for a function.
 
         Args:
-            docstring_data: List of DocstringSchema objects
-            module_name: Name of the module
-            file_path: Path to the module file
-            description: Brief description of the module
+            func_name (str): Name of the function
+            params (List[str]): List of parameter names
+            description (str): Description of the function
+            returns (Optional[str]): Description of return value
 
         Returns:
-            str: Generated markdown documentation
+            str: Generated docstring
         """
-        try:
-            # Validate all docstring data against schema
-            for entry in docstring_data:
-                validate(instance=entry, schema=self.schema)
+        docstring = f'"""{description}\n\nArgs:\n'
+        for param in params:
+            docstring += f"    {param}: Description for {param}\n"
+        
+        if returns:
+            docstring += f"\nReturns:\n    {returns}\n"
+        
+        docstring += '"""'
+        return docstring
 
-            docs = []
+class MarkdownGenerator:
+    """Generates markdown documentation from Python code elements."""
 
-            # Module Overview
-            docs.append(f"# Module: {module_name}\n")
-            docs.append("## Overview")
-            docs.append(f"**File:** `{file_path}`")
-            docs.append(f"**Description:** {description}\n")
+    def __init__(self):
+        """Initialize the MarkdownGenerator."""
+        self.output = []
 
-            # Group entries by type for efficient processing
-            entries_by_type = {}
-            for entry in docstring_data:
-                entry_type = entry.get('type')
-                entries_by_type.setdefault(entry_type, []).append(entry)
-
-            # Classes
-            docs.append("## Classes\n")
-            docs.append("| Class | Inherits From | Complexity Score* |")
-            docs.append("|-------|---------------|------------------|")
-            for entry in entries_by_type.get('class', []):
-                docs.append(f"| `{entry.get('name', '')}` | `{entry.get('inherits', '')}` | - |")
-
-            # Class Methods
-            docs.append("\n### Class Methods\n")
-            docs.append("| Class | Method | Parameters | Returns | Complexity Score* |")
-            docs.append("|-------|--------|------------|---------|------------------|")
-            for entry in entries_by_type.get('method', []):
-                params = ", ".join(
-                    f"{p.get('name', '')}: {p.get('type', '')}"
-                    for p in entry.get('parameters', [])
-                    if isinstance(p, dict)
-                )
-                docs.append(
-                    f"| `{entry.get('class', '')}` | `{entry.get('name', '')}` | "
-                    f"`({params})` | `{entry.get('returns', {}).get('type', '')}` | - |"
-                )
-
-            # Functions
-            docs.append("\n## Functions\n")
-            docs.append("| Function | Parameters | Returns | Complexity Score* |")
-            docs.append("|----------|------------|---------|------------------|")
-            for entry in entries_by_type.get('function', []):
-                params = ", ".join(
-                    f"{p.get('name', '')}: {p.get('type', '')}"
-                    for p in entry.get('parameters', [])
-                    if isinstance(p, dict)
-                )
-                docs.append(
-                    f"| `{entry.get('name', '')}` | `({params})` | "
-                    f"`{entry.get('returns', {}).get('type', '')}` | - |"
-                )
-
-            # Constants and Variables
-            docs.append("\n## Constants and Variables\n")
-            docs.append("| Name | Type | Value |")
-            docs.append("|------|------|-------|")
-            for entry in entries_by_type.get('constant', []):
-                docs.append(
-                    f"| `{entry.get('name', '')}` | `{entry.get('data_type', '')}` | "
-                    f"`{entry.get('value', '')}` |"
-                )
-
-            # Recent Changes
-            docs.append("\n## Recent Changes\n")
-            for entry in entries_by_type.get('changes', []):
-                for change in entry.get('changes', []):
-                    docs.append(f"- [{change.get('date', '')}] {change.get('description', '')}")
-
-            # Source Code
-            docs.append("\n## Source Code\n")
-            docs.append("```python")
-            docs.append(self.source_code)
-            docs.append("```\n")
-
-            return "\n".join(docs)
-
-        except Exception as e:
-            log_error(f"Error generating documentation: {e}")
-            return ""
-
-    def _generate_function_section(self, docstring: DocstringSchema) -> str:
-        """Generate markdown documentation for a single function."""
-        sections = []
-
-        # Function description
-        sections.append(f"### {docstring.get('name', 'Unknown Function')}\n")
-        sections.append(f"{docstring.get('description', '')}\n")
-
-        # Parameters section
-        parameters = docstring.get('parameters', [])
-        if isinstance(parameters, list):
-            sections.append("#### Parameters\n")
-            for param in parameters:
-                if isinstance(param, dict):
-                    optional_str = " (Optional)" if param.get('optional', False) else ""
-                    default_str = f", default: {param.get('default_value', '')}" if param.get('default_value') else ""
-                    sections.append(f"- `{param.get('name', '')}: {param.get('type', '')}`{optional_str}{default_str}")
-                    sections.append(f"  - {param.get('description', '')}\n")
-
-        # Returns section
-        returns = docstring.get('returns', {})
-        if isinstance(returns, dict):
-            sections.append("#### Returns\n")
-            sections.append(f"- `{returns.get('type', '')}`: {returns.get('description', '')}\n")
-
-        # Raises section
-        raises = docstring.get('raises', [])
-        if isinstance(raises, list):
-            sections.append("#### Raises\n")
-            for exception in raises:
-                if isinstance(exception, dict):
-                    sections.append(f"- `{exception.get('exception', '')}`: {exception.get('description', '')}\n")
-
-        # Examples section
-        examples = docstring.get('examples', [])
-        if isinstance(examples, list):
-            sections.append("#### Examples\n")
-            for example in examples:
-                if isinstance(example, dict):
-                    if example.get('description'):
-                        sections.append(f"{example['description']}\n")
-                    sections.append("```python\n" + example.get('code', '') + "\n```\n")
-
-        # Notes section
-        notes = docstring.get('notes', [])
-        if isinstance(notes, list):
-            sections.append("#### Notes\n")
-            for note in notes:
-                if isinstance(note, dict):
-                    note_type = note.get('type', '')
-                    if isinstance(note_type, str):
-                        sections.append(f"**{note_type.upper()}:** {note.get('content', '')}\n")
-
-        # Metadata section
-        metadata = docstring.get('metadata', {})
-        if isinstance(metadata, dict):
-            sections.append("#### Metadata\n")
-            if metadata.get('author'):
-                sections.append(f"- Author: {metadata['author']}\n")
-            if metadata.get('since_version'):
-                sections.append(f"- Since: {metadata['since_version']}\n")
-            if metadata.get('deprecated'):
-                dep = metadata['deprecated']
-                if isinstance(dep, dict):
-                    sections.append(f"- **DEPRECATED** in version {dep.get('version', '')}")
-                    sections.append(f"  - Reason: {dep.get('reason', '')}")
-                    if dep.get('alternative'):
-                        sections.append(f"  - Use instead: {dep.get('alternative', '')}\n")
-            if metadata.get('complexity'):
-                comp = metadata['complexity']
-                if isinstance(comp, dict):
-                    sections.append("- Complexity:")
-                    if comp.get('time'):
-                        sections.append(f"  - Time: {comp.get('time', '')}")
-                    if comp.get('space'):
-                        sections.append(f"  - Space: {comp.get('space', '')}\n")
-
-        return "\n".join(sections)
-
-    def insert_docstring(self, node: ast.AST, docstring_data: DocstringSchema) -> None:
+    def add_header(self, text: str, level: int = 1) -> None:
         """
-        Insert a schema-validated docstring into an AST node.
+        Add a header to the markdown document.
 
         Args:
-            node: The AST node to insert the docstring into
-            docstring_data: The docstring data conforming to the schema
+            text (str): Header text
+            level (int): Header level (1-6)
         """
-        try:
-            # Validate against schema
-            validate(instance=docstring_data, schema=self.schema)
+        self.output.append(f"{'#' * level} {text}\n")
 
-            # Convert schema format to Google-style docstring
-            docstring = self._convert_schema_to_docstring(docstring_data)
-
-            # Update the node's docstring
-            if isinstance(node, (ast.FunctionDef, ast.ClassDef, ast.Module)):
-                node.body.insert(0, ast.Expr(value=ast.Str(value=docstring)))
-                log_info(f"Inserted docstring for {getattr(node, 'name', 'module')}")
-
-        except Exception as e:
-            log_error(f"Error inserting docstring: {e}")
-
-    def _convert_schema_to_docstring(self, schema_data: DocstringSchema) -> str:
-        """Convert schema format to Google-style docstring."""
-        lines = []
-
-        # Description
-        lines.append(schema_data.get('description', ''))
-        lines.append("")
-
-        # Parameters
-        parameters = schema_data.get('parameters', [])
-        if isinstance(parameters, list):
-            lines.append("Args:")
-            for param in parameters:
-                if isinstance(param, dict):
-                    optional_str = " (Optional)" if param.get('optional', False) else ""
-                    default_str = f", default: {param.get('default_value', '')}" if param.get('default_value') else ""
-                    lines.append(
-                        f"    {param.get('name', '')} ({param.get('type', '')}){optional_str}{default_str}: "
-                        f"{param.get('description', '')}"
-                    )
-            lines.append("")
-
-        # Returns
-        returns = schema_data.get('returns', {})
-        if isinstance(returns, dict):
-            lines.append("Returns:")
-            lines.append(f"    {returns.get('type', '')}: {returns.get('description', '')}")
-            lines.append("")
-
-        # Raises
-        raises = schema_data.get('raises', [])
-        if isinstance(raises, list):
-            lines.append("Raises:")
-            for exception in raises:
-                if isinstance(exception, dict):
-                    lines.append(f"    {exception.get('exception', '')}: {exception.get('description', '')}")
-            lines.append("")
-
-        # Examples
-        examples = schema_data.get('examples', [])
-        if isinstance(examples, list):
-            lines.append("Examples:")
-            for example in examples:
-                if isinstance(example, dict):
-                    if example.get('description'):
-                        lines.append(f"    {example['description']}")
-                    lines.append("    >>> " + example.get('code', '').replace("\n", "\n    >>> "))
-            lines.append("")
-
-        # Notes
-        notes = schema_data.get('notes', [])
-        if isinstance(notes, list):
-            lines.append("Notes:")
-            for note in notes:
-                if isinstance(note, dict):
-                    note_type = note.get('type', '')
-                    if isinstance(note_type, str):
-                        lines.append(f"    {note_type.upper()}: {note.get('content', '')}")
-            lines.append("")
-
-        return "\n".join(lines)
-
-    def update_source_code(self, docstring_data: List[DocstringSchema]) -> str:
+    def add_code_block(self, code: str, language: str = "python") -> None:
         """
-        Update the source code with schema-validated docstrings.
+        Add a code block to the markdown document.
 
         Args:
-            docstring_data: List of DocstringSchema objects
+            code (str): The code to include
+            language (str): Programming language for syntax highlighting
+        """
+        self.output.append(f"```{language}\n{code}\n```\n")
+
+    def add_section(self, title: str, content: str) -> None:
+        """
+        Add a section with title and content.
+
+        Args:
+            title (str): Section title
+            content (str): Section content
+        """
+        self.output.append(f"### {title}\n\n{content}\n")
+
+    def generate_markdown(self) -> str:
+        """
+        Generate the final markdown document.
 
         Returns:
-            str: The updated source code with inserted docstrings
+            str: Complete markdown document
         """
-        try:
-            # Create a mapping from names to docstring data for quick lookup
-            docstring_map = {entry.get('name'): entry for entry in docstring_data}
+        return "\n".join(self.output)
 
-            for node in ast.walk(self.tree):
-                if isinstance(node, (ast.FunctionDef, ast.ClassDef)):
-                    # Lookup the docstring data by name
-                    doc_entry = docstring_map.get(node.name)
-                    if doc_entry:
-                        self.insert_docstring(node, doc_entry)
+class DocumentationManager:
+    """Manages the overall documentation generation process."""
 
-            # Unparse the AST back to source code
-            updated_code = ast.unparse(self.tree)
-            return updated_code
-
-        except Exception as e:
-            log_error(f"Error updating source code: {e}")
-            return self.source_code
-
-    def write_markdown_to_file(self, markdown_content: str, filename: str) -> None:
+    def __init__(self, output_dir: str = "docs"):
         """
-        Write the generated markdown content to a file in the output directory.
+        Initialize the DocumentationManager.
 
         Args:
-            markdown_content: The markdown content to write
-            filename: The name of the file to write to
+            output_dir (str): Directory for output documentation
+        """
+        self.output_dir = Path(output_dir)
+        self.output_dir.mkdir(exist_ok=True)
+        self.parser = DocStringParser()
+        self.generator = DocStringGenerator()
+        self.markdown = MarkdownGenerator()
+        self.logger = self._setup_logging()
+
+    def _setup_logging(self) -> logging.Logger:
+        """
+        Set up logging configuration.
+
+        Returns:
+            logging.Logger: Configured logger instance
+        """
+        logger = logging.getLogger('documentation_manager')
+        logger.setLevel(logging.INFO)
+        
+        if not logger.handlers:
+            handler = logging.StreamHandler()
+            formatter = logging.Formatter(
+                '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+            )
+            handler.setFormatter(formatter)
+            logger.addHandler(handler)
+        
+        return logger
+
+    def process_file(self, file_path: Union[str, Path]) -> Optional[str]:
+        """
+        Process a single Python file for documentation.
+
+        Args:
+            file_path (Union[str, Path]): Path to the Python file
+
+        Returns:
+            Optional[str]: Generated markdown documentation
         """
         try:
-            output_path = os.path.join('output', filename)
-            with open(output_path, 'w') as file:
-                file.write(markdown_content)
-            log_info(f"Markdown documentation written to {output_path}")
+            file_path = Path(file_path)
+            if not file_path.exists() or file_path.suffix != '.py':
+                self.logger.error(f"Invalid Python file: {file_path}")
+                return None
+
+            with open(file_path, 'r') as f:
+                source = f.read()
+
+            module_doc = self.parser.extract_docstring(source)
+            
+            self.markdown.add_header(f"Documentation for {file_path.name}")
+            if module_doc:
+                self.markdown.add_section("Module Description", module_doc)
+
+            # Parse the source code
+            tree = ast.parse(source)
+            
+            # Process classes and functions
+            for node in ast.walk(tree):
+                if isinstance(node, ast.ClassDef):
+                    self._process_class(node)
+                elif isinstance(node, ast.FunctionDef):
+                    self._process_function(node)
+
+            return self.markdown.generate_markdown()
+
         except Exception as e:
-            log_error(f"Error writing markdown to file: {e}")
+            self.logger.error(f"Error processing file {file_path}: {e}")
+            return None
+
+    def _process_class(self, node: ast.ClassDef) -> None:
+        """
+        Process a class definition node.
+
+        Args:
+            node (ast.ClassDef): AST node representing a class definition
+        """
+        try:
+            class_doc = ast.get_docstring(node)
+            self.markdown.add_section(f"Class: {node.name}", 
+                                    class_doc if class_doc else "No documentation available")
+            
+            # Process class methods
+            for item in node.body:
+                if isinstance(item, ast.FunctionDef):
+                    self._process_function(item, is_method=True, class_name=node.name)
+        except Exception as e:
+            self.logger.error(f"Error processing class {node.name}: {e}")
+
+    def _process_function(self, node: ast.FunctionDef, is_method: bool = False, class_name: str = None) -> None:
+        """
+        Process a function definition node.
+
+        Args:
+            node (ast.FunctionDef): AST node representing a function definition
+            is_method (bool): Whether the function is a class method
+            class_name (str): Name of the containing class if is_method is True
+        """
+        try:
+            func_doc = ast.get_docstring(node)
+            section_title = f"{'Method' if is_method else 'Function'}: {node.name}"
+            if is_method:
+                section_title = f"Method: {class_name}.{node.name}"
+
+            # Extract function signature
+            args = [arg.arg for arg in node.args.args]
+            signature = f"{node.name}({', '.join(args)})"
+
+            content = [
+                f"```python\n{signature}\n```\n",
+                func_doc if func_doc else "No documentation available"
+            ]
+            
+            self.markdown.add_section(section_title, "\n".join(content))
+        except Exception as e:
+            self.logger.error(f"Error processing function {node.name}: {e}")
+
+    def process_directory(self, directory_path: Union[str, Path]) -> Dict[str, str]:
+        """
+        Process all Python files in a directory for documentation.
+
+        Args:
+            directory_path (Union[str, Path]): Path to the directory to process
+
+        Returns:
+            Dict[str, str]: Dictionary mapping file paths to their documentation
+        """
+        directory_path = Path(directory_path)
+        results = {}
+
+        if not directory_path.is_dir():
+            self.logger.error(f"Invalid directory path: {directory_path}")
+            return results
+
+        for file_path in directory_path.rglob("*.py"):
+            try:
+                doc_content = self.process_file(file_path)
+                if doc_content:
+                    results[str(file_path)] = doc_content
+            except Exception as e:
+                self.logger.error(f"Error processing directory {directory_path}: {e}")
+
+        return results
+
+    def save_documentation(self, content: str, output_file: Union[str, Path]) -> bool:
+        """
+        Save documentation content to a file.
+
+        Args:
+            content (str): Documentation content to save
+            output_file (Union[str, Path]): Path to the output file
+
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        try:
+            output_file = Path(output_file)
+            output_file.parent.mkdir(parents=True, exist_ok=True)
+            
+            with open(output_file, 'w') as f:
+                f.write(content)
+            
+            self.logger.info(f"Documentation saved to {output_file}")
+            return True
+        except Exception as e:
+            self.logger.error(f"Error saving documentation: {e}")
+            return False
+
+    def generate_index(self, docs_map: Dict[str, str]) -> str:
+        """
+        Generate an index page for all documentation files.
+
+        Args:
+            docs_map (Dict[str, str]): Dictionary mapping file paths to their documentation
+
+        Returns:
+            str: Generated index page content
+        """
+        index_content = [
+            "# Documentation Index\n",
+            f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n",
+            "## Files\n"
+        ]
+
+        for file_path in sorted(docs_map.keys()):
+            rel_path = Path(file_path).name
+            doc_path = Path(file_path).with_suffix('.md').name
+            index_content.append(f"- [{rel_path}]({doc_path})")
+
+        return "\n".join(index_content)
+
+def main():
+    """Main function to demonstrate usage of the documentation system."""
+    # Setup logging
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
+    logger = logging.getLogger(__name__)
+
+    try:
+        # Initialize DocumentationManager
+        doc_manager = DocumentationManager(output_dir="generated_docs")
+
+        # Example usage
+        source_dir = "."  # Current directory
+        docs_map = doc_manager.process_directory(source_dir)
+
+        # Generate and save documentation for each file
+        for file_path, content in docs_map.items():
+            output_file = Path("generated_docs") / Path(file_path).with_suffix('.md').name
+            doc_manager.save_documentation(content, output_file)
+
+        # Generate and save index
+        index_content = doc_manager.generate_index(docs_map)
+        doc_manager.save_documentation(index_content, "generated_docs/index.md")
+
+        logger.info("Documentation generation completed successfully")
+
+    except Exception as e:
+        logger.error(f"Documentation generation failed: {e}")
+        raise
+
+if __name__ == "__main__":
+    main()
