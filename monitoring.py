@@ -1,10 +1,9 @@
-# monitoring.py
 import time
 from typing import Dict, List, Optional
 from dataclasses import dataclass
 from datetime import datetime
 import json
-from logger import log_info, log_error
+from logger import log_info, log_error, log_debug
 
 @dataclass
 class APIMetrics:
@@ -32,22 +31,38 @@ class SystemMonitor:
     Tracks API usage, performance metrics, and system health.
     """
     def __init__(self):
+        log_debug("Initializing SystemMonitor")
         self.api_metrics: List[APIMetrics] = []
         self.cache_hits: int = 0
         self.cache_misses: int = 0
         self.start_time: float = time.time()
-        self.docstring_changes: Dict[str, List[str]] = {
+        self.docstring_changes: Dict[str, List[Dict[str, str]]] = {
             'added': [],
             'updated': [],
             'retained': [],
             'failed': []
         }
-        self.current_batch: Dict = {
+        self.current_batch: Dict[str, int] = {
             'total_tokens': 0,
             'total_time': 0,
             'processed': 0,
             'failed': 0
         }
+        
+    def log_request(self, endpoint, tokens, response_time, status, error=None):
+        """
+        Log details of an API request.
+
+        Args:
+            endpoint (str): The API endpoint that was called.
+            tokens (int): Number of tokens used in the request.
+            response_time (float): Time taken for the request.
+            status (str): Status of the request (e.g., 'success', 'error').
+            error (str, optional): Error message if the request failed.
+        """
+        log_info(f"API Request to {endpoint}: {status}, Tokens: {tokens}, Time: {response_time}s")
+        if error:
+            log_error(f"Error: {error}")
 
     def log_api_request(
         self,
@@ -67,6 +82,7 @@ class SystemMonitor:
             status: Status of the request
             error: Optional error message
         """
+        log_debug(f"Logging API request to endpoint: {endpoint}")
         metric = APIMetrics(
             timestamp=time.time(),
             operation=endpoint,
@@ -96,6 +112,7 @@ class SystemMonitor:
             action: Type of change (added/updated/retained/failed)
             function_name: Name of the function
         """
+        log_debug(f"Logging docstring change: {action} for function: {function_name}")
         if action in self.docstring_changes:
             self.docstring_changes[action].append({
                 'function': function_name,
@@ -119,6 +136,7 @@ class SystemMonitor:
             execution_time: Time taken to process
             tokens_used: Number of tokens used
         """
+        log_debug(f"Logging operation completion for function: {function_name}")
         self.current_batch['total_tokens'] += tokens_used
         self.current_batch['total_time'] += execution_time
         self.current_batch['processed'] += 1
@@ -134,6 +152,7 @@ class SystemMonitor:
         Returns:
             BatchMetrics: Metrics for the completed batch
         """
+        log_debug("Logging batch completion")
         metrics = BatchMetrics(
             total_functions=total_functions,
             successful=self.current_batch['processed'],
@@ -152,6 +171,7 @@ class SystemMonitor:
             'failed': 0
         }
         
+        log_info(f"Batch processing completed: {metrics}")
         return metrics
 
     def get_metrics_summary(self) -> Dict:
@@ -161,11 +181,12 @@ class SystemMonitor:
         Returns:
             Dict: Complete metrics summary
         """
+        log_debug("Generating metrics summary")
         runtime = time.time() - self.start_time
         total_requests = len(self.api_metrics)
         failed_requests = len([m for m in self.api_metrics if m.error])
         
-        return {
+        summary = {
             'runtime_seconds': runtime,
             'api_metrics': {
                 'total_requests': total_requests,
@@ -185,6 +206,8 @@ class SystemMonitor:
                 for action, changes in self.docstring_changes.items()
             }
         }
+        log_info(f"Metrics summary generated: {summary}")
+        return summary
 
     def export_metrics(self, filepath: str) -> None:
         """
@@ -193,6 +216,7 @@ class SystemMonitor:
         Args:
             filepath: Path to save the metrics file
         """
+        log_debug(f"Exporting metrics to file: {filepath}")
         try:
             metrics = self.get_metrics_summary()
             with open(filepath, 'w') as f:

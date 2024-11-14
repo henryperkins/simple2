@@ -1,42 +1,38 @@
 import asyncio
-from logger import log_info, log_error
+import random
+from logger import log_error, log_info
 
 class ContentFilter:
-    """
-    Implements content filtering to ensure safe and appropriate AI-generated content.
-    """
     def __init__(self, client):
         self.client = client
-        self.blocked_terms = set()
-        self.content_categories = {
-            "hate": 0.7,
-            "sexual": 0.8,
-            "violence": 0.8,
-            "self-harm": 0.9
-        }
+        self.max_retries = 3
 
-    def add_blocked_terms(self, terms):
-        self.blocked_terms.update(terms)
+    async def check_content(self, text: str) -> dict:
+        """
+        Perform content safety check with retry logic.
 
-    async def check_content(self, text):
-        # Check against blocked terms
-        for term in self.blocked_terms:
-            if term.lower() in text.lower():
-                return {"safe": False, "reason": f"Blocked term: {term}"}
+        Args:
+            text (str): Content to check
 
-        # Use Azure OpenAI content filtering
-        try:
-            response = await self.client.moderations.create(input=text)
-            results = response.results[0]
+        Returns:
+            dict: Safety check results
+        """
+        for attempt in range(self.max_retries):
+            try:
+                response = await self.client.moderations.create(input=text)
+                results = response.results[0]
+                flagged = any(results.flagged)
+                annotations = results.categories._asdict()
 
-            for category, threshold in self.content_categories.items():
-                if getattr(results.categories, category) > threshold:
-                    return {
-                        "safe": False,
-                        "reason": f"Content filtered: {category}"
-                    }
+                if flagged:
+                    log_info(f"Content flagged: {annotations}")
+                else:
+                    log_info("Content is safe.")
 
-            return {"safe": True, "reason": None}
-        except Exception as e:
-            log_error(f"Content filtering error: {e}")
-            return {"safe": False, "reason": "Error in content check"}
+                return {'safe': not flagged, 'annotations': annotations}
+
+            except Exception as e:
+                log_error(f"Error during content safety check attempt {attempt + 1}: {e}")
+                if attempt == self.max_retries - 1:
+                    return {'safe': True, 'error': str(e)}
+                await asyncio.sleep(2 ** attempt + random.uniform(0, 1))  # Exponential backoff with jitter

@@ -1,5 +1,3 @@
-# interaction.py
-
 import asyncio
 import hashlib
 import ast
@@ -8,7 +6,7 @@ from typing import Dict, Tuple, Optional, List
 from api_client import AzureOpenAIClient
 from docs import DocStringManager
 from cache import Cache
-from logger import log_info, log_error
+from logger import log_info, log_error, log_debug
 from documentation_analyzer import DocumentationAnalyzer
 from response_parser import ResponseParser
 from monitoring import SystemMonitor
@@ -74,10 +72,13 @@ class InteractionHandler:
                 # Generate docstring
                 prompt = self._generate_prompt(function_node)
 
-                # Safety checks
+                # Perform content safety check
                 safety_check = await self.api_client.check_content_safety(prompt)
-                if not safety_check['safe']:
-                    log_error(f"Content safety check failed for {func_name}")
+                if 'error' in safety_check:
+                    log_error(f"Content safety check error for {func_name}: {safety_check['error']}")
+                    return None, None
+                elif not safety_check['safe']:
+                    log_error(f"Content flagged for {func_name}: {safety_check['annotations']}")
                     return None, None
 
                 # Get docstring from API
@@ -115,8 +116,7 @@ class InteractionHandler:
                 return None, None
 
     async def process_all_functions(
-        self,
-        source_code: str
+        self, source_code: str
     ) -> Tuple[Optional[str], Optional[str]]:
         """
         Process all functions in the source code with batch processing and rate limiting.
@@ -127,16 +127,20 @@ class InteractionHandler:
         Returns:
             Tuple[Optional[str], Optional[str]]: Updated source code and documentation
         """
+        log_debug("Starting batch processing of all functions.")
         try:
             functions = self._extract_functions(source_code)
+            log_info(f"Extracted {len(functions)} functions from source code.")
 
             # Process functions in batches
             results = []
             for i in range(0, len(functions), self.batch_size):
-                batch = functions[i:i + self.batch_size]
+                batch = functions[i: i + self.batch_size]
+                log_debug(
+                    f"Processing batch of functions: {[func['name'] for func in batch]}"
+                )
                 batch_tasks = [
-                    self.process_function(source_code, func_info)
-                    for func_info in batch
+                    self.process_function(source_code, func_info) for func_info in batch
                 ]
                 batch_results = await asyncio.gather(*batch_tasks)
                 results.extend(batch_results)
@@ -147,15 +151,17 @@ class InteractionHandler:
 
             for function_info, (docstring, metadata) in zip(functions, results):
                 if docstring:
-                    manager.insert_docstring(function_info['node'], docstring)
+                    manager.insert_docstring(function_info["node"], docstring)
                     if metadata:
-                        documentation_entries.append({
-                            'function_name': function_info['name'],
-                            'complexity_score': metadata.get('complexity_score', 0),
-                            'docstring': docstring,
-                            'summary': metadata.get('summary', ''),
-                            'changelog': metadata.get('changelog', '')
-                        })
+                        documentation_entries.append(
+                            {
+                                "function_name": function_info["name"],
+                                "complexity_score": metadata.get("complexity_score", 0),
+                                "docstring": docstring,
+                                "summary": metadata.get("summary", ""),
+                                "changelog": metadata.get("changelog", ""),
+                            }
+                        )
 
             updated_code = manager.update_source_code(documentation_entries)
             documentation = manager.generate_markdown_documentation(
@@ -164,6 +170,7 @@ class InteractionHandler:
 
             # Log final metrics
             self.monitor.log_batch_completion(len(functions))
+            log_info("Batch processing completed successfully.")
 
             return updated_code, documentation
 
@@ -174,32 +181,37 @@ class InteractionHandler:
     def _generate_cache_key(self, function_node) -> str:
         """Generate a unique cache key for a function."""
         func_signature = self._get_function_signature(function_node)
-        return hashlib.md5(func_signature.encode()).hexdigest()
+        cache_key = hashlib.md5(func_signature.encode()).hexdigest()
+        log_debug(f"Generated cache key: {cache_key}")
+        return cache_key
 
     def _get_function_signature(self, function_node) -> str:
         """Generate a unique signature for a function."""
         func_name = function_node.name
         args = [arg.arg for arg in function_node.args.args]
-        return f"{func_name}({', '.join(args)})"
+        signature = f"{func_name}({', '.join(args)})"
+        log_debug(f"Function signature: {signature}")
+        return signature
 
     def _generate_prompt(self, function_node: ast.FunctionDef) -> str:
         """Generate a prompt for the API based on the function node."""
-        # Example prompt generation logic
-        return f"Generate a docstring for the function {function_node.name} with parameters {', '.join(arg.arg for arg in function_node.args.args)}."
+        prompt = f"Generate a docstring for the function {function_node.name} with parameters {', '.join(arg.arg for arg in function_node.args.args)}."
+        log_debug(f"Generated prompt: {prompt}")
+        return prompt
 
     @staticmethod
     def _extract_functions(source_code: str) -> List[Dict]:
         """Extract all functions from the source code."""
+        log_debug("Extracting functions from source code.")
         try:
             tree = ast.parse(source_code)
             functions = []
             for node in ast.walk(tree):
                 if isinstance(node, ast.FunctionDef):
-                    functions.append({
-                        'node': node,
-                        'name': node.name,
-                        'lineno': node.lineno
-                    })
+                    functions.append(
+                        {"node": node, "name": node.name, "lineno": node.lineno}
+                    )
+            log_info(f"Extracted {len(functions)} functions.")
             return functions
         except Exception as e:
             log_error(f"Error extracting functions: {str(e)}")

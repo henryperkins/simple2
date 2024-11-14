@@ -2,7 +2,7 @@ from schema import DocstringSchema, JSON_SCHEMA
 from jsonschema import validate, ValidationError
 import ast
 from typing import Optional
-from logger import log_info, log_error
+from logger import log_info, log_error, log_debug
 
 class DocumentationAnalyzer:
     """
@@ -11,27 +11,34 @@ class DocumentationAnalyzer:
 
     def is_docstring_complete(self, docstring_data: Optional[DocstringSchema]) -> bool:
         """Check if docstring data is complete according to schema."""
+        log_debug("Checking if docstring is complete.")
         if not docstring_data:
+            log_debug("Docstring data is None or empty.")
             return False
             
         try:
             validate(instance=docstring_data, schema=JSON_SCHEMA)
+            log_info("Docstring is complete and valid according to schema.")
             return True
-        except ValidationError:
+        except ValidationError as e:
+            log_error(f"Docstring validation error: {e}")
             return False
 
     def analyze_node(self, node: ast.AST) -> Optional[DocstringSchema]:
         """Analyze AST node and return schema-compliant docstring data."""
+        log_debug(f"Analyzing AST node: {ast.dump(node)}")
         if isinstance(node, (ast.FunctionDef, ast.ClassDef)):
             docstring = ast.get_docstring(node)
             if docstring:
                 try:
-                    # Parse existing docstring into schema format
+                    log_debug(f"Docstring found: {docstring}")
                     docstring_data = self._parse_existing_docstring(docstring)
+                    log_info(f"Successfully parsed docstring for node: {node.name}")
                     return docstring_data
                 except Exception as e:
-                    log_error(f"Failed to parse docstring: {e}")
+                    log_error(f"Failed to parse docstring for node '{node.name}': {e}")
                     return None
+        log_debug("No docstring found or node is not a function/class definition.")
         return None
 
     def is_docstring_incomplete(self, function_node: ast.FunctionDef) -> bool:
@@ -44,6 +51,7 @@ class DocumentationAnalyzer:
         Returns:
             bool: True if the docstring is incomplete, False otherwise.
         """
+        log_debug(f"Checking if docstring is incomplete for function: {function_node.name}")
         if not isinstance(function_node, ast.FunctionDef):
             log_error("Node is not a function definition, cannot evaluate docstring.")
             return True
@@ -53,21 +61,17 @@ class DocumentationAnalyzer:
             log_info(f"Function '{function_node.name}' has no docstring.")
             return True
 
-        # Parse docstring into sections
         docstring_sections = self._parse_docstring_sections(existing_docstring)
         issues = []
 
-        # Check for Args section
         arg_issues = self._verify_args_section(function_node, docstring_sections.get('Args', ''))
         if arg_issues:
             issues.extend(arg_issues)
 
-        # Check for Returns section
         return_issues = self._verify_returns_section(function_node, docstring_sections.get('Returns', ''))
         if return_issues:
             issues.extend(return_issues)
 
-        # Check for Raises section if exceptions are present
         raises_issues = self._verify_raises_section(function_node, docstring_sections.get('Raises', ''))
         if raises_issues:
             issues.extend(raises_issues)
@@ -89,20 +93,18 @@ class DocumentationAnalyzer:
         Returns:
             bool: True if the docstring is incomplete, False otherwise.
         """
+        log_debug(f"Checking if class docstring is incomplete for class: {class_node.name}")
         existing_docstring = ast.get_docstring(class_node)
         if not existing_docstring:
             log_info(f"Class '{class_node.name}' has no docstring.")
             return True
         
-        # Additional checks can be added here
         docstring_sections = self._parse_docstring_sections(existing_docstring)
         issues = []
 
-        # Check for Description section
         if not docstring_sections.get('Description', '').strip():
             issues.append("Missing Description section.")
 
-        # Check for Attributes section if the class has attributes
         class_attributes = [node for node in class_node.body if isinstance(node, ast.Assign)]
         if class_attributes and not docstring_sections.get('Attributes', '').strip():
             issues.append("Missing Attributes section.")
@@ -124,6 +126,7 @@ class DocumentationAnalyzer:
         Returns:
             dict: A dictionary of docstring sections.
         """
+        log_debug("Parsing docstring into sections.")
         sections = {}
         current_section = 'Description'
         sections[current_section] = []
@@ -136,9 +139,9 @@ class DocumentationAnalyzer:
             else:
                 sections[current_section].append(line)
         
-        # Convert lists to strings
         for key in sections:
             sections[key] = '\n'.join(sections[key]).strip()
+            log_debug(f"Section '{key}': {sections[key]}")
         
         return sections
 
@@ -153,15 +156,16 @@ class DocumentationAnalyzer:
         Returns:
             list: A list of issues found with the Args section.
         """
+        log_debug(f"Verifying Args section for function: {function_node.name}")
         issues = []
         documented_args = self._extract_documented_args(args_section)
         function_args = [arg.arg for arg in function_node.args.args]
 
-        # Check for undocumented arguments
         for arg in function_args:
             if arg not in documented_args and arg != 'self':
                 issues.append(f"Parameter '{arg}' not documented in Args section.")
         
+        log_debug(f"Args section issues: {issues}")
         return issues
 
     def _extract_documented_args(self, args_section: str) -> list:
@@ -174,11 +178,13 @@ class DocumentationAnalyzer:
         Returns:
             list: A list of documented argument names.
         """
+        log_debug("Extracting documented arguments from Args section.")
         documented_args = []
         for line in args_section.split('\n'):
             if ':' in line:
                 arg_name = line.split(':')[0].strip()
                 documented_args.append(arg_name)
+        log_debug(f"Documented arguments: {documented_args}")
         return documented_args
 
     def _verify_returns_section(self, function_node: ast.FunctionDef, returns_section: str) -> list:
@@ -192,11 +198,12 @@ class DocumentationAnalyzer:
         Returns:
             list: A list of issues found with the Returns section.
         """
+        log_debug(f"Verifying Returns section for function: {function_node.name}")
         issues = []
-        # Check if function has a return annotation and no Returns section
         if not returns_section and function_node.returns:
             issues.append("Missing Returns section.")
         
+        log_debug(f"Returns section issues: {issues}")
         return issues
 
     def _verify_raises_section(self, function_node: ast.FunctionDef, raises_section: str) -> list:
@@ -210,13 +217,14 @@ class DocumentationAnalyzer:
         Returns:
             list: A list of issues found with the Raises section.
         """
+        log_debug(f"Verifying Raises section for function: {function_node.name}")
         issues = []
-        # Check if function raises any exceptions
         raises_exception = any(isinstance(node, ast.Raise) for node in ast.walk(function_node))
         
         if raises_exception and not raises_section:
             issues.append("Missing Raises section for exceptions.")
         
+        log_debug(f"Raises section issues: {issues}")
         return issues
 
     def _parse_existing_docstring(self, docstring: str) -> DocstringSchema:
@@ -229,5 +237,6 @@ class DocumentationAnalyzer:
         Returns:
             DocstringSchema: The parsed docstring schema.
         """
+        log_debug("Parsing existing docstring into DocstringSchema.")
         # Implement the actual parsing logic here
         return DocstringSchema(description=docstring, parameters=[], returns={})

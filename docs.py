@@ -15,6 +15,89 @@ from typing import Optional, Dict, Any, List, Union, Tuple
 from pathlib import Path
 from datetime import datetime
 
+class DocStringManager:
+    """Manages docstring operations for source code files."""
+
+    def __init__(self, source_code: str):
+        """
+        Initialize with source code.
+
+        Args:
+            source_code (str): The source code to manage docstrings for
+        """
+        self.source_code = source_code
+        self.tree = ast.parse(source_code)
+        self.docstring_parser = DocStringParser()
+        logging.debug("DocStringManager initialized.")
+
+    def insert_docstring(self, node: ast.FunctionDef, docstring: str) -> None:
+        """
+        Insert or update docstring for a function node.
+
+        Args:
+            node (ast.FunctionDef): The function node to update
+            docstring (str): The new docstring to insert
+        """
+        logging.debug(f"Inserting docstring into function '{node.name}'.")
+        node.body.insert(0, ast.Expr(value=ast.Str(s=docstring)))
+
+    def update_source_code(self, documentation_entries: List[Dict]) -> str:
+        """
+        Update source code with new docstrings.
+
+        Args:
+            documentation_entries (List[Dict]): List of documentation updates
+
+        Returns:
+            str: Updated source code
+        """
+        logging.debug("Updating source code with new docstrings.")
+        for entry in documentation_entries:
+            for node in ast.walk(self.tree):
+                if isinstance(node, ast.FunctionDef) and node.name == entry['function_name']:
+                    self.insert_docstring(node, entry['docstring'])
+
+        updated_code = ast.unparse(self.tree)
+        logging.info("Source code updated with new docstrings.")
+        return updated_code
+
+    def generate_markdown_documentation(
+        self,
+        documentation_entries: List[Dict],
+        module_name: str = "",
+        file_path: str = "",
+        description: str = ""
+    ) -> str:
+        """
+        Generate markdown documentation for the code.
+
+        Args:
+            documentation_entries (List[Dict]): List of documentation updates
+            module_name (str): Name of the module
+            file_path (str): Path to the source file 
+            description (str): Module description
+
+        Returns:
+            str: Generated markdown documentation
+        """
+        logging.debug("Generating markdown documentation.")
+        markdown_gen = MarkdownGenerator()
+        if module_name:
+            markdown_gen.add_header(f"Module: {module_name}")
+        if description:
+            markdown_gen.add_section("Description", description)
+    
+        for entry in documentation_entries:
+            if 'function_name' in entry and 'docstring' in entry:
+                markdown_gen.add_section(
+                    f"Function: {entry['function_name']}",
+                    entry['docstring']
+                )
+
+        markdown = markdown_gen.generate_markdown()
+        logging.info("Markdown documentation generated.")
+        return markdown
+    
 class DocStringParser:
     """Handles parsing and extraction of docstrings from Python source code."""
     
@@ -29,9 +112,12 @@ class DocStringParser:
         Returns:
             Optional[str]: The extracted docstring or None if not found
         """
+        logging.debug("Extracting module-level docstring.")
         try:
             tree = ast.parse(source_code)
-            return ast.get_docstring(tree)
+            docstring = ast.get_docstring(tree)
+            logging.debug(f"Extracted docstring: {docstring}")
+            return docstring
         except Exception as e:
             logging.error(f"Failed to parse source code: {e}")
             return None
@@ -47,8 +133,10 @@ class DocStringParser:
         Returns:
             Dict[str, Any]: Structured docstring information
         """
+        logging.debug(f"Parsing docstring for function: {func.__name__}")
         doc = inspect.getdoc(func)
         if not doc:
+            logging.debug("No docstring found.")
             return {}
 
         sections = {
@@ -90,6 +178,7 @@ class DocStringParser:
             elif current_section == 'examples' and line:
                 sections['examples'].append(line)
 
+        logging.debug(f"Parsed docstring sections: {sections}")
         return sections
 
 class DocStringGenerator:
@@ -107,6 +196,7 @@ class DocStringGenerator:
         Returns:
             str: Generated docstring
         """
+        logging.debug(f"Generating class docstring for: {class_name}")
         return f'"""{description}\n\nAttributes:\n    Add class attributes here\n"""'
 
     @staticmethod
@@ -128,6 +218,7 @@ class DocStringGenerator:
         Returns:
             str: Generated docstring
         """
+        logging.debug(f"Generating function docstring for: {func_name}")
         docstring = f'"""{description}\n\nArgs:\n'
         for param in params:
             docstring += f"    {param}: Description for {param}\n"
@@ -136,6 +227,7 @@ class DocStringGenerator:
             docstring += f"\nReturns:\n    {returns}\n"
         
         docstring += '"""'
+        logging.debug(f"Generated docstring: {docstring}")
         return docstring
 
 class MarkdownGenerator:
@@ -144,6 +236,7 @@ class MarkdownGenerator:
     def __init__(self):
         """Initialize the MarkdownGenerator."""
         self.output = []
+        logging.debug("MarkdownGenerator initialized.")
 
     def add_header(self, text: str, level: int = 1) -> None:
         """
@@ -153,6 +246,7 @@ class MarkdownGenerator:
             text (str): Header text
             level (int): Header level (1-6)
         """
+        logging.debug(f"Adding header: {text}")
         self.output.append(f"{'#' * level} {text}\n")
 
     def add_code_block(self, code: str, language: str = "python") -> None:
@@ -163,6 +257,7 @@ class MarkdownGenerator:
             code (str): The code to include
             language (str): Programming language for syntax highlighting
         """
+        logging.debug("Adding code block.")
         self.output.append(f"```{language}\n{code}\n```\n")
 
     def add_section(self, title: str, content: str) -> None:
@@ -173,6 +268,7 @@ class MarkdownGenerator:
             title (str): Section title
             content (str): Section content
         """
+        logging.debug(f"Adding section: {title}")
         self.output.append(f"### {title}\n\n{content}\n")
 
     def generate_markdown(self) -> str:
@@ -182,6 +278,7 @@ class MarkdownGenerator:
         Returns:
             str: Complete markdown document
         """
+        logging.debug("Generating final markdown document.")
         return "\n".join(self.output)
 
 class DocumentationManager:
@@ -200,6 +297,7 @@ class DocumentationManager:
         self.generator = DocStringGenerator()
         self.markdown = MarkdownGenerator()
         self.logger = self._setup_logging()
+        logging.debug("DocumentationManager initialized.")
 
     def _setup_logging(self) -> logging.Logger:
         """
@@ -209,7 +307,7 @@ class DocumentationManager:
             logging.Logger: Configured logger instance
         """
         logger = logging.getLogger('documentation_manager')
-        logger.setLevel(logging.INFO)
+        logger.setLevel(logging.DEBUG)
         
         if not logger.handlers:
             handler = logging.StreamHandler()
@@ -231,6 +329,7 @@ class DocumentationManager:
         Returns:
             Optional[str]: Generated markdown documentation
         """
+        logging.debug(f"Processing file: {file_path}")
         try:
             file_path = Path(file_path)
             if not file_path.exists() or file_path.suffix != '.py':
@@ -256,7 +355,9 @@ class DocumentationManager:
                 elif isinstance(node, ast.FunctionDef):
                     self._process_function(node)
 
-            return self.markdown.generate_markdown()
+            markdown = self.markdown.generate_markdown()
+            logging.info(f"Generated markdown for file: {file_path}")
+            return markdown
 
         except Exception as e:
             self.logger.error(f"Error processing file {file_path}: {e}")
@@ -269,6 +370,7 @@ class DocumentationManager:
         Args:
             node (ast.ClassDef): AST node representing a class definition
         """
+        logging.debug(f"Processing class: {node.name}")
         try:
             class_doc = ast.get_docstring(node)
             self.markdown.add_section(f"Class: {node.name}", 
@@ -290,6 +392,7 @@ class DocumentationManager:
             is_method (bool): Whether the function is a class method
             class_name (str): Name of the containing class if is_method is True
         """
+        logging.debug(f"Processing function: {node.name}")
         try:
             func_doc = ast.get_docstring(node)
             section_title = f"{'Method' if is_method else 'Function'}: {node.name}"
@@ -319,6 +422,7 @@ class DocumentationManager:
         Returns:
             Dict[str, str]: Dictionary mapping file paths to their documentation
         """
+        logging.debug(f"Processing directory: {directory_path}")
         directory_path = Path(directory_path)
         results = {}
 
@@ -347,6 +451,7 @@ class DocumentationManager:
         Returns:
             bool: True if successful, False otherwise
         """
+        logging.debug(f"Saving documentation to: {output_file}")
         try:
             output_file = Path(output_file)
             output_file.parent.mkdir(parents=True, exist_ok=True)
@@ -370,6 +475,7 @@ class DocumentationManager:
         Returns:
             str: Generated index page content
         """
+        logging.debug("Generating documentation index.")
         index_content = [
             "# Documentation Index\n",
             f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n",
@@ -381,13 +487,14 @@ class DocumentationManager:
             doc_path = Path(file_path).with_suffix('.md').name
             index_content.append(f"- [{rel_path}]({doc_path})")
 
+        logging.info("Documentation index generated.")
         return "\n".join(index_content)
 
 def main():
     """Main function to demonstrate usage of the documentation system."""
     # Setup logging
     logging.basicConfig(
-        level=logging.INFO,
+        level=logging.DEBUG,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     )
     logger = logging.getLogger(__name__)

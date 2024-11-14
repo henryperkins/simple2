@@ -5,7 +5,7 @@ import shutil
 import tempfile
 import subprocess
 from interaction import InteractionHandler
-from logger import log_info, log_error
+from logger import log_info, log_error, log_debug
 
 def load_source_file(file_path):
     """
@@ -22,6 +22,7 @@ def load_source_file(file_path):
         IOError: If there is an error reading the file.
     """
     try:
+        log_debug(f"Attempting to load source file: {file_path}")
         with open(file_path, 'r', encoding='utf-8') as file:
             source_code = file.read()
             log_info(f"Successfully loaded source code from '{file_path}'")
@@ -45,6 +46,7 @@ def save_updated_source(file_path, updated_code):
         IOError: If there is an error writing to the file.
     """
     try:
+        log_debug(f"Attempting to save updated source code to: {file_path}")
         with open(file_path, 'w', encoding='utf-8') as file:
             file.write(updated_code)
             log_info(f"Successfully saved updated source code to '{file_path}'")
@@ -60,6 +62,7 @@ async def process_file(file_path, args):
         file_path (str): The path to the source file.
         args (argparse.Namespace): Parsed command-line arguments.
     """
+    log_debug(f"Processing file: {file_path}")
     try:
         source_code = load_source_file(file_path)
         cache_config = {
@@ -98,10 +101,13 @@ async def run_workflow(args):
     source_path = args.source_path
     temp_dir = None
 
+    log_debug(f"Starting workflow for source path: {source_path}")
+
     # Check if the source path is a Git URL
     if source_path.startswith('http://') or source_path.startswith('https://'):
         temp_dir = tempfile.mkdtemp()
         try:
+            log_debug(f"Cloning repository from URL: {source_path} to temp directory: {temp_dir}")
             subprocess.run(['git', 'clone', source_path, temp_dir], check=True)
             source_path = temp_dir
         except subprocess.CalledProcessError as e:
@@ -110,16 +116,19 @@ async def run_workflow(args):
 
     try:
         if os.path.isdir(source_path):
+            log_debug(f"Processing directory: {source_path}")
             # Process all Python files in the directory
             for root, _, files in os.walk(source_path):
                 for file in files:
                     if file.endswith('.py'):
                         await process_file(os.path.join(root, file), args)
         else:
+            log_debug(f"Processing single file: {source_path}")
             # Process a single file
             await process_file(source_path, args)
     finally:
         if temp_dir:
+            log_debug(f"Cleaning up temporary directory: {temp_dir}")
             shutil.rmtree(temp_dir)
 
 if __name__ == "__main__":
@@ -136,4 +145,4 @@ if __name__ == "__main__":
     parser.add_argument('--cache-ttl', type=int, default=86400, help='Default TTL for cache entries in seconds.')
     args = parser.parse_args()
 
-    asyncio.run(run_workflow(args))
+    asyncio.run(run_workflow(args)) 

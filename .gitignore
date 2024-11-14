@@ -26,3 +26,6 @@ cache/ *.cache
 # Azure and Cloud Specific
 *.azurewebsites
 *.azurewebsites.net
+output/
+workflow.log
+venv/
