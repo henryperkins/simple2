@@ -253,6 +253,10 @@ class InteractionHandler:
             updated_code = manager.update_source_code(documentation_entries)
             documentation = manager.generate_markdown_documentation(documentation_entries)
 
+            # Save the generated markdown documentation
+            output_file = "generated_docs/documentation.md"
+            manager.save_documentation(documentation, output_file)
+
             # Log final metrics
             self.monitor.log_batch_completion(len(functions))
             log_info("Batch processing completed successfully.")

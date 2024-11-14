@@ -8,6 +8,7 @@ from api_client import AzureOpenAIClient
 from logger import log_info, log_error, log_debug
 from utils import ensure_directory
 from interaction import InteractionHandler
+from docs import DocumentationManager
 
 async def process_prompt(prompt: str, client: AzureOpenAIClient):
     """
