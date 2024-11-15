@@ -4,31 +4,13 @@ import os
 import shutil
 import tempfile
 import subprocess
-from api_client import AzureOpenAIClient
+from interaction import InteractionHandler
 from logger import log_info, log_error, log_debug
 from utils import ensure_directory
-from interaction import InteractionHandler
-from docs import DocumentationManager
-
-async def process_prompt(prompt: str, client: AzureOpenAIClient):
-    """
-    Process a single prompt to generate a response.
-
-    Args:
-        prompt (str): The input prompt for the AI model.
-        client (AzureOpenAIClient): The Azure OpenAI client instance.
-
-    Returns:
-        str: The AI-generated response.
-    """
-    try:
-        response = await client.get_docstring(prompt)
-        if response:
-            print(response['content']['docstring'])
-        else:
-            log_error("Failed to generate a response.")
-    except Exception as e:
-        log_error(f"Error processing prompt: {e}")
+from extract.classes import ClassExtractor
+from extract.functions import FunctionExtractor  # Import FunctionExtractor
+from docs import MarkdownGenerator
+from api_client import AzureOpenAIClient
 
 def load_source_file(file_path):
     """
@@ -79,41 +61,76 @@ def save_updated_source(file_path, updated_code):
 
 async def process_file(file_path, args, client):
     """
-    Process a single file to generate/update docstrings.
+    Process a single file to generate/update docstrings and markdown documentation.
     
     Args:
         file_path (str): The path to the source file.
         args (argparse.Namespace): Parsed command-line arguments.
-        client (AzureOpenAIClient): The Azure OpenAI client instance.
+        client (AzureOpenAIClient): The client to interact with the language model.
     """
     log_debug(f"Processing file: {file_path}")
     try:
         source_code = load_source_file(file_path)
-
-        cache_config = {
-            'host': args.redis_host,
-            'port': args.redis_port,
-            'db': args.redis_db,
-            'password': args.redis_password,
-            'default_ttl': args.cache_ttl
-        }
-        interaction_handler = InteractionHandler(
-            endpoint=args.endpoint,
-            api_key=args.api_key,
-            cache_config=cache_config
-        )
-        updated_code, documentation = await interaction_handler.process_all_functions(source_code)
-
-        if updated_code:
-            ensure_directory(args.output_dir)  # Ensure the output directory exists
-            output_file_path = os.path.join(args.output_dir, os.path.basename(file_path))
-            save_updated_source(output_file_path, updated_code)
-            if args.documentation_file and documentation:
-                with open(args.documentation_file, 'a', encoding='utf-8') as doc_file:
-                    doc_file.write(documentation)
-                    log_info(f"Documentation appended to '{args.documentation_file}'")
-        else:
-            log_error(f"No updated code to save for '{file_path}'.")
+        
+        # Extract class information
+        class_extractor = ClassExtractor(source_code)
+        class_info = class_extractor.extract_classes()
+        
+        # Extract function information
+        function_extractor = FunctionExtractor(source_code)
+        function_info = function_extractor.extract_functions()
+        
+        # Generate docstrings using the language model for classes
+        for class_data in class_info:
+            prompt = f"Generate a docstring for the class {class_data['name']} with methods {class_data['methods']}."
+            docstring = await client.get_docstring(
+                func_name=class_data['name'],
+                params=[(method['name'], 'Unknown') for method in class_data['methods']],  # Placeholder for actual types
+                return_type='Unknown',  # Placeholder for actual return type
+                complexity_score=0,  # Placeholder for actual complexity score
+                existing_docstring=class_data['docstring'],
+                decorators=[],
+                exceptions=[]
+            )
+            class_data['docstring'] = docstring['content']['docstring'] if docstring else class_data['docstring']
+        
+        # Generate docstrings using the language model for functions
+        for function_data in function_info:
+            prompt = f"Generate a docstring for the function {function_data['name']} with arguments {function_data['args']}."
+            docstring = await client.get_docstring(
+                func_name=function_data['name'],
+                params=function_data['args'],
+                return_type=function_data['returns'],
+                complexity_score=0,  # Placeholder for actual complexity score
+                existing_docstring=function_data['docstring'],
+                decorators=function_data['decorators'],
+                exceptions=[]
+            )
+            function_data['docstring'] = docstring['content']['docstring'] if docstring else function_data['docstring']
+        
+        # Generate markdown documentation
+        markdown_generator = MarkdownGenerator()
+        for class_data in class_info:
+            markdown_generator.add_header(class_data['name'])
+            markdown_generator.add_code_block(class_data['docstring'], language="python")
+        for function_data in function_info:
+            markdown_generator.add_header(function_data['name'])
+            markdown_generator.add_code_block(function_data['docstring'], language="python")
+        
+        markdown_content = markdown_generator.generate_markdown()
+        
+        # Save markdown documentation
+        ensure_directory(args.output_dir)
+        markdown_file_path = os.path.join(args.output_dir, f"{os.path.basename(file_path)}.md")
+        with open(markdown_file_path, 'w', encoding='utf-8') as md_file:
+            md_file.write(markdown_content)
+            log_info(f"Markdown documentation saved to '{markdown_file_path}'")
+        
+        # Save updated source code with docstrings
+        updated_code = source_code  # Placeholder for actual updated code logic
+        output_file_path = os.path.join(args.output_dir, os.path.basename(file_path))
+        save_updated_source(output_file_path, updated_code)
+        
     except Exception as e:
         log_error(f"An error occurred while processing '{file_path}': {e}")
 
@@ -129,8 +146,8 @@ async def run_workflow(args):
 
     log_debug(f"Starting workflow for source path: {source_path}")
 
-    # Initialize the Azure OpenAI client
-    client = AzureOpenAIClient(endpoint=args.endpoint, api_key=args.api_key)
+    # Initialize the AzureOpenAIClient
+    client = AzureOpenAIClient(api_key=args.api_key, endpoint=args.endpoint)
 
     # Check if the source path is a Git URL
     if source_path.startswith('http://') or source_path.startswith('https://'):
@@ -165,7 +182,7 @@ if __name__ == "__main__":
     parser.add_argument('source_path', help='Path to the Python source file, directory, or Git repository to be processed.')
     parser.add_argument('api_key', help='Your Azure OpenAI API key.')
     parser.add_argument('--endpoint', default='https://your-azure-openai-endpoint.openai.azure.com/', help='Your Azure OpenAI endpoint.')
-    parser.add_argument('--output-dir', default='output', help='Directory to save the updated source code.')
+    parser.add_argument('--output-dir', default='output', help='Directory to save the updated source code and markdown documentation.')
     parser.add_argument('--documentation-file', help='Path to save the generated documentation.')
     parser.add_argument('--redis-host', default='localhost', help='Redis server host.')
     parser.add_argument('--redis-port', type=int, default=6379, help='Redis server port.')

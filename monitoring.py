@@ -26,45 +26,51 @@ class BatchMetrics:
     average_time_per_function: float
 
 class SystemMonitor:
+    """System monitoring and metrics tracking."""
+    
     def __init__(self):
-        self.api_metrics: List[APIMetrics] = []
-        self.docstring_changes: Dict[str, List[Dict[str, str]]] = {
-            'added': [],
-            'updated': [],
-            'retained': [],
-            'failed': []
-        }
-        self.current_batch = {
-            'total_tokens': 0,
-            'total_time': 0.0,
-            'processed': 0,
-            'failed': 0
-        }
-        self.cache_hits = 0
-        self.cache_misses = 0
-        self.start_time = time.time()
+        self.requests = []
+        self.metrics = {}
+
     def log_request(
         self,
         func_name: str,
         status: str,
-        endpoint: Optional[str] = None,
-        tokens: Optional[int] = None
+        response_time: Optional[float] = None,
+        tokens: Optional[int] = None,
+        endpoint: Optional[str] = None
     ) -> None:
         """
-        Log API request details.
+        Log API request details with timing and token usage.
 
         Args:
-            func_name (str): Name of the function being processed.
-            status (str): Status of the request (e.g., 'success', 'failure').
-            endpoint (Optional[str]): The API endpoint being used.
-            tokens (Optional[int]): Number of tokens used in the request.
+            func_name: Name of the function that made the request
+            status: Status of the request (success/error)
+            response_time: Response time in seconds 
+            tokens: Number of tokens used
+            endpoint: API endpoint called
         """
-        message = f"API request for function '{func_name}' completed with status: {status}"
-        if endpoint:
-            message += f" at endpoint: {endpoint}"
+        request = {
+            'function': func_name,
+            'status': status
+        }
+
+        if response_time is not None:
+            request['response_time'] = response_time
+
         if tokens is not None:
-            message += f" using {tokens} tokens"
-        log_info(message)
+            request['tokens'] = tokens
+
+        if endpoint is not None:
+            request['endpoint'] = endpoint
+
+        self.requests.append(request)
+        log_info(
+            f"API request: func={func_name} status={status}"
+            f"{f' time={response_time:.2f}s' if response_time else ''}"
+            f"{f' tokens={tokens}' if tokens else ''}"
+            f"{f' endpoint={endpoint}' if endpoint else ''}"
+        )
 
     def log_cache_hit(self, func_name: str) -> None:
         """

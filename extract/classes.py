@@ -1,7 +1,7 @@
 import ast
 from schema import DocstringSchema
 from logger import log_info, log_error, log_debug
-from base import BaseExtractor
+from extract.base import BaseExtractor
 
 class ClassExtractor(BaseExtractor):
     """

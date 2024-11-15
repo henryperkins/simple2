@@ -47,3 +47,6 @@ workflow.log
 
 # Python Cache
 __pycache__/
+workflow.log.1
+extract/__pycache__
+test_metrics.py
