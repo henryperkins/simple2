@@ -1,5 +1,5 @@
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 from dataclasses import dataclass
 from datetime import datetime
 import json
@@ -9,7 +9,7 @@ from logger import log_info, log_error, log_debug
 class APIMetrics:
     """Metrics data structure for API operations."""
     timestamp: float
-    operation: str
+    operation: str 
     response_time: float
     tokens_used: int
     status: str
@@ -29,6 +29,7 @@ class SystemMonitor:
     """System monitoring and metrics tracking."""
     
     def __init__(self):
+        """Initialize monitoring system."""
         self.requests = []
         self.metrics = {}
         self.api_metrics = []
@@ -46,10 +47,9 @@ class SystemMonitor:
         }
         self.start_time = time.time()
 
-    
     def log_request(
         self,
-        func_name: str,  # Required parameter
+        func_name: str,  # Required parameter 
         status: str,
         response_time: Optional[float] = None,
         tokens: Optional[int] = None,
@@ -60,7 +60,7 @@ class SystemMonitor:
         Log API request details with timing and token usage.
 
         Args:
-            func_name: Name of the function that made the request 
+            func_name: Name of the function that made the request
             status: Status of the request (success/error)
             response_time: Response time in seconds
             tokens: Number of tokens used
@@ -77,7 +77,7 @@ class SystemMonitor:
                 request['response_time'] = response_time
 
             if tokens is not None:
-                request['tokens'] = tokens 
+                request['tokens'] = tokens
 
             if endpoint is not None:
                 request['endpoint'] = endpoint
@@ -96,7 +96,7 @@ class SystemMonitor:
         except Exception as e:
             log_debug(f"Non-critical monitoring error: {str(e)}")
             return
-    
+
     def log_debug_event(self, message: str) -> None:
         """Log a debug event."""
         log_debug(message)
@@ -158,9 +158,9 @@ class SystemMonitor:
         log_debug("Logging batch completion")
         metrics = BatchMetrics(
             total_functions=total_functions,
-            successful=int(self.current_batch['processed']),  # Ensure integer type
-            failed=int(self.current_batch['failed']),         # Ensure integer type
-            total_tokens=int(self.current_batch['total_tokens']),  # Ensure integer type
+            successful=int(self.current_batch['processed']),
+            failed=int(self.current_batch['failed']),
+            total_tokens=int(self.current_batch['total_tokens']),
             total_time=self.current_batch['total_time'],
             average_time_per_function=self.current_batch['total_time'] / max(self.current_batch['processed'], 1)
         )
