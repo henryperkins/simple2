@@ -31,113 +31,78 @@ class SystemMonitor:
     def __init__(self):
         self.requests = []
         self.metrics = {}
+        self.api_metrics = []
+        self.cache_hits = 0
+        self.cache_misses = 0
+        self.docstring_changes = {
+            'added': [], 'updated': [], 
+            'retained': [], 'failed': []
+        }
+        self.current_batch = {
+            'total_tokens': 0,
+            'total_time': 0.0,
+            'processed': 0,
+            'failed': 0
+        }
+        self.start_time = time.time()
 
+    
     def log_request(
         self,
-        func_name: str,
+        func_name: str,  # Required parameter
         status: str,
         response_time: Optional[float] = None,
         tokens: Optional[int] = None,
-        endpoint: Optional[str] = None
+        endpoint: Optional[str] = None,
+        error: Optional[str] = None
     ) -> None:
         """
         Log API request details with timing and token usage.
 
         Args:
-            func_name: Name of the function that made the request
+            func_name: Name of the function that made the request 
             status: Status of the request (success/error)
-            response_time: Response time in seconds 
+            response_time: Response time in seconds
             tokens: Number of tokens used
             endpoint: API endpoint called
+            error: Optional error message if request failed
         """
-        request = {
-            'function': func_name,
-            'status': status
-        }
+        try:
+            request = {
+                'function': func_name or 'unknown_function',
+                'status': status
+            }
 
-        if response_time is not None:
-            request['response_time'] = response_time
+            if response_time is not None:
+                request['response_time'] = response_time
 
-        if tokens is not None:
-            request['tokens'] = tokens
+            if tokens is not None:
+                request['tokens'] = tokens 
 
-        if endpoint is not None:
-            request['endpoint'] = endpoint
+            if endpoint is not None:
+                request['endpoint'] = endpoint
 
-        self.requests.append(request)
-        log_info(
-            f"API request: func={func_name} status={status}"
-            f"{f' time={response_time:.2f}s' if response_time else ''}"
-            f"{f' tokens={tokens}' if tokens else ''}"
-            f"{f' endpoint={endpoint}' if endpoint else ''}"
-        )
+            if error is not None:
+                request['error'] = error
 
-    def log_cache_hit(self, func_name: str) -> None:
-        """
-        Log a cache hit event.
-
-        Args:
-            func_name (str): Name of the function for which the cache was hit.
-        """
-        log_info(f"Cache hit for function '{func_name}'.")
-
-    def log_operation_complete(
-        self,
-        func_name: str,
-        duration: float,
-        tokens: int
-    ) -> None:
-        """
-        Log the completion of an operation.
-
-        Args:
-            func_name (str): Name of the function that was processed.
-            duration (float): Time taken to process the function.
-            tokens (int): Number of tokens used in the request.
-        """
-        message = (
-            f"Operation for function '{func_name}' completed in {duration:.2f} seconds "
-            f"using {tokens} tokens."
-        )
-        log_info(message)
-
-    def log_batch_completion(self, total_functions: int) -> None:
-        """
-        Log the completion of a batch processing.
-
-        Args:
-            total_functions (int): Total number of functions processed in the batch.
-        """
-        log_info(f"Batch processing completed: {total_functions} functions processed.")
-
-    def log_error_event(self, message: str) -> None:
-        """
-        Log an error event.
-
-        Args:
-            message (str): Error message to log.
-        """
-        log_error(message)
-
+            self.requests.append(request)
+            log_info(
+                f"API request: func={func_name} status={status}"
+                f"{f' time={response_time:.2f}s' if response_time else ''}"
+                f"{f' tokens={tokens}' if tokens else ''}"
+                f"{f' endpoint={endpoint}' if endpoint else ''}"
+                f"{f' error={error}' if error else ''}"
+            )
+        except Exception as e:
+            log_debug(f"Non-critical monitoring error: {str(e)}")
+            return
+    
     def log_debug_event(self, message: str) -> None:
-        """
-        Log a debug event.
-
-        Args:
-            message (str): Debug message to log.
-        """
+        """Log a debug event."""
         log_debug(message)
-    def log_api_request(self, endpoint: str, tokens: int, response_time: float, status: str, error: Optional[str] = None) -> None:
-        """
-        Log an API request with detailed metrics.
 
-        Args:
-            endpoint: The API endpoint called
-            tokens: Number of tokens used
-            response_time: Time taken for the request
-            status: Status of the request
-            error: Optional error message
-        """
+    def log_api_request(self, endpoint: str, tokens: int, response_time: float, status: str, error: Optional[str] = None) -> None:
+        """Log an API request with detailed metrics."""
         log_debug(f"Logging API request to endpoint: {endpoint}")
         metric = APIMetrics(
             timestamp=time.time(),
@@ -161,13 +126,7 @@ class SystemMonitor:
         log_info(f"Cache miss for function: {function_name}")
 
     def log_docstring_changes(self, action: str, function_name: str) -> None:
-        """
-        Log changes to function docstrings.
-
-        Args:
-            action: The action performed ('added', 'updated', 'retained', 'failed')
-            function_name: The name of the function whose docstring was changed
-        """
+        """Log changes to function docstrings."""
         log_debug(f"Logging docstring change: {action} for function: {function_name}")
         if action in self.docstring_changes:
             self.docstring_changes[action].append({
@@ -179,14 +138,7 @@ class SystemMonitor:
             log_error(f"Unknown docstring action: {action}")
 
     def log_operation_complete(self, function_name: str, execution_time: float, tokens_used: int) -> None:
-        """
-        Log completion of a function processing operation.
-
-        Args:
-            function_name: Name of the processed function
-            execution_time: Time taken to process
-            tokens_used: Number of tokens used
-        """
+        """Log completion of a function processing operation."""
         log_debug(f"Logging operation completion for function: {function_name}")
         self.current_batch['total_tokens'] += tokens_used
         self.current_batch['total_time'] += execution_time
