@@ -1,3 +1,14 @@
+"""
+System Monitoring and Metrics Module
+
+This module provides functionality for monitoring system operations and tracking metrics.
+It logs API requests, cache events, and docstring changes, and generates summaries of
+system performance and usage.
+
+Version: 1.0.0
+Author: Development Team
+"""
+
 import time
 from typing import Any, Dict, Optional
 from dataclasses import dataclass
@@ -27,7 +38,7 @@ class BatchMetrics:
 
 class SystemMonitor:
     """System monitoring and metrics tracking."""
-    
+
     def __init__(self):
         """Initialize monitoring system."""
         self.requests = []

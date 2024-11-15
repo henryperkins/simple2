@@ -9,20 +9,22 @@ Version: 1.2.0
 Author: Development Team
 """
 
-import asyncio
 import json
 import os
+import asyncio
 import time
 from typing import Optional, Dict, Any, List, Tuple
-from openai import AzureOpenAI, OpenAIError
-from logger import log_info, log_error, log_debug, log_exception
+from openai import AzureOpenAI, APIError
+from logger import log_info, log_error, log_debug
 from monitoring import SystemMonitor
 from token_management import optimize_prompt
 from cache import Cache
+from config import AzureOpenAIConfig, default_config
 
 class TooManyRetriesError(Exception):
     """Raised when maximum retry attempts are exceeded."""
     pass
+
 class AzureOpenAIClient:
     """
     Client for interacting with Azure OpenAI to generate docstrings.
@@ -30,33 +32,50 @@ class AzureOpenAIClient:
     This class manages the communication with the Azure OpenAI API, including
     constructing prompts, handling responses, and managing retries and errors.
     """
-    MAX_WAIT_TIME = 60
-    BASE_WAIT_TIME = 2
-    def __init__(
-        self,
-        endpoint: Optional[str] = None,
-        api_key: Optional[str] = None,
-        api_version: str = os.getenv('API_VERSION', '2024-08-01-preview'),
-        model: str = os.getenv('MODEL', 'gpt-4'),
-        max_retries: int = 3,
-        cache: Optional[Cache] = None
-    ):
-        """Initialize the AzureOpenAIClient with necessary configuration."""
-        self.endpoint = endpoint
-        self.api_key = api_key
-        self.api_version = api_version
-        self.model = model
-        self.max_retries = max_retries
-        self.monitor = SystemMonitor()
-        self.cache = cache or Cache()
-        self.current_retry = 0  # Add this line
+    def __init__(self, config: Optional[AzureOpenAIConfig] = None):
+        """
+        Initialize the AzureOpenAIClient with necessary configuration.
 
+        Args:
+            config (Optional[AzureOpenAIConfig]): Configuration instance for Azure OpenAI.
+        """
+        self.config = config or default_config
+        if not self.config.validate():
+            raise ValueError("Invalid Azure OpenAI configuration")
+        
         self.client = AzureOpenAI(
-            azure_endpoint=self.endpoint,
-            api_key=self.api_key,
-            api_version=self.api_version,
+            api_key=self.config.api_key,
+            api_version=self.config.api_version,
+            azure_endpoint=self.config.endpoint
         )
+        
+        self.monitor = SystemMonitor()
+        self.cache = Cache()
+        self.current_retry = 0
+
         log_info("Azure OpenAI client initialized successfully")
+
+    def validate_connection(self) -> bool:
+        """
+        Validate the connection to Azure OpenAI service.
+        
+        Returns:
+            bool: True if connection is successful
+            
+        Raises:
+            ConnectionError: If connection validation fails
+        """
+        try:
+            response = self.client.chat.completions.create(
+                model=self.config.deployment_name,
+                messages=[{"role": "user", "content": "test"}],
+                max_tokens=1
+            )
+            log_info("Connection to Azure OpenAI API validated successfully.")
+            return True
+        except Exception as e:
+            log_error(f"Connection validation failed: {str(e)}")
+            raise ConnectionError(f"Connection validation failed: {str(e)}")
 
     def create_enhanced_json_schema_prompt(
         self,
@@ -138,10 +157,9 @@ class AzureOpenAIClient:
         Returns:
             Optional[Dict[str, Any]]: The generated docstring and related metadata, or None if failed.
         """
-        # Generate cache key
         cache_key = f"{func_name}:{hash(str(params))}{hash(return_type)}"
         
-        # Try cache first
+        # Ensure cache retrieval is awaited if it's an async operation
         cached_response = await self.cache.get_cached_docstring(cache_key)
         if cached_response:
             self.monitor.log_request(
@@ -152,7 +170,6 @@ class AzureOpenAIClient:
             )
             return cached_response
 
-        # Create and optimize prompt
         prompt = self.create_enhanced_json_schema_prompt(
             func_name=func_name,
             params=params,
@@ -167,11 +184,11 @@ class AzureOpenAIClient:
         log_debug(f"Optimized prompt: {optimized_prompt}")
         start_time = time.time()
 
-        for attempt in range(self.max_retries):
+        for attempt in range(self.config.max_retries):
             try:
                 log_debug(f"Attempt {attempt + 1} to generate docstring.")
-                response = await self.client.chat.completions.create(
-                    model=self.model,
+                response = self.client.chat.completions.create(
+                    model=self.config.deployment_name,
                     messages=[
                         {
                             "role": "system",
@@ -215,30 +232,29 @@ class AzureOpenAIClient:
                 )
                 log_debug(f"Function arguments parsed: {function_args}")
 
-                # Cache the response with tags for smart invalidation
                 await self.cache.save_docstring(
                     cache_key,
                     {
                         'content': function_args,
-                        'usage': response.usage._asdict(),
+                        'usage': response.usage.model_dump(),
                         'metadata': {
                             'func_name': func_name,
                             'timestamp': time.time(),
-                            'model': self.model,
+                            'model': self.config.deployment_name,
                             'complexity_score': complexity_score
                         }
                     },
                     tags=[
                         f"func:{func_name}",
-                        f"model:{self.model}",
-                        f"complexity:{complexity_score//10}0"  # Group by complexity ranges
+                        f"model:{self.config.deployment_name}",
+                        f"complexity:{complexity_score//10}0"
                     ]
                 )
 
-                return {"content": function_args, "usage": response.usage._asdict()}
+                return {"content": function_args, "usage": response.usage.model_dump()}
 
-            except OpenAIError as e:
-                wait_time = 2**attempt
+            except APIError as e:
+                wait_time = self.config.retry_delay ** attempt
                 self.monitor.log_request(
                     func_name,
                     status="error",
@@ -247,13 +263,13 @@ class AzureOpenAIClient:
                     endpoint="chat.completions",
                     error=str(e)
                 )
-                log_error(f"OpenAIError on attempt {attempt + 1}: {e}")
+                log_error(f"APIError on attempt {attempt + 1}: {e}")
 
-                if attempt < self.max_retries - 1:
+                if attempt < self.config.max_retries - 1:
                     log_info(f"Retrying after {wait_time} seconds...")
                     await asyncio.sleep(wait_time)
                 else:
-                    log_error(f"Failed after {self.max_retries} attempts: {str(e)}")
+                    log_error(f"Failed after {self.config.max_retries} attempts: {str(e)}")
                     return None
             except json.JSONDecodeError as e:
                 log_error(f"Error decoding JSON response: {e}")
@@ -261,31 +277,52 @@ class AzureOpenAIClient:
             except Exception as e:
                 log_error(f"Unexpected error: {e}")
                 return None
+        
+    def invalidate_cache_for_function(self, func_name: str) -> bool:
+        """
+        Invalidate all cached responses for a specific function.
 
-    async def invalidate_cache_for_function(self, func_name: str) -> bool:
-        """Invalidate all cached responses for a specific function."""
+        Args:
+            func_name (str): The name of the function to invalidate cache for.
+
+        Returns:
+            bool: True if cache invalidation was successful, False otherwise.
+        """
         try:
-            count = await self.cache.invalidate_by_tags([f"func:{func_name}"])
+            count = self.cache.invalidate_by_tags([f"func:{func_name}"])
             log_info(f"Invalidated {count} cache entries for function: {func_name}")
             return True
         except Exception as e:
             log_error(f"Failed to invalidate cache for function {func_name}: {e}")
             return False
 
-    async def invalidate_cache_by_model(self, model: str) -> bool:
-        """Invalidate all cached responses for a specific model."""
+    def invalidate_cache_by_model(self, model: str) -> bool:
+        """
+        Invalidate all cached responses for a specific model.
+
+        Args:
+            model (str): The model name to invalidate cache for.
+
+        Returns:
+            bool: True if cache invalidation was successful, False otherwise.
+        """
         try:
-            count = await self.cache.invalidate_by_tags([f"model:{model}"])
+            count = self.cache.invalidate_by_tags([f"model:{model}"])
             log_info(f"Invalidated {count} cache entries for model: {model}")
             return True
         except Exception as e:
             log_error(f"Failed to invalidate cache for model {model}: {e}")
             return False
 
-    async def get_cache_stats(self) -> Dict[str, Any]:
-        """Get comprehensive cache statistics."""
+    def get_cache_stats(self) -> Dict[str, Any]:
+        """
+        Get comprehensive cache statistics.
+
+        Returns:
+            Dict[str, Any]: A dictionary containing cache statistics and client information.
+        """
         try:
-            cache_stats = await self.cache.get_cache_stats()
+            cache_stats = self.cache.get_cache_stats()
             return {
                 'cache_stats': cache_stats,
                 'client_info': self.get_client_info(),
@@ -295,13 +332,31 @@ class AzureOpenAIClient:
             log_error(f"Failed to get cache stats: {e}")
             return {}
 
-    async def _get_completion(self, func_name: str, params: List[Tuple[str, str]],
-                            return_type: str, complexity_score: int,
-                            existing_docstring: str, **kwargs) -> Optional[Dict[str, Any]]:
-        """Internal method for getting completion from Azure OpenAI."""
+    def _get_completion(
+        self,
+        func_name: str,
+        params: List[Tuple[str, str]],
+        return_type: str,
+        complexity_score: int,
+        existing_docstring: str,
+        **kwargs
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Internal method for getting completion from Azure OpenAI.
+
+        Args:
+            func_name (str): The name of the function.
+            params (List[Tuple[str, str]]): A list of parameter names and types.
+            return_type (str): The return type of the function.
+            complexity_score (int): The complexity score of the function.
+            existing_docstring (str): The existing docstring of the function.
+
+        Returns:
+            Optional[Dict[str, Any]]: The generated completion and related metadata, or None if failed.
+        """
         start_time = time.time()
         
-        for attempt in range(self.max_retries):
+        for attempt in range(self.config.max_retries):
             try:
                 prompt = self.create_enhanced_json_schema_prompt(
                     func_name=func_name,
@@ -313,8 +368,8 @@ class AzureOpenAIClient:
                     exceptions=kwargs.get('exceptions')
                 )
 
-                response = await self.client.chat.completions.create(
-                    model=self.model,
+                response = self.client.chat.completions.create(
+                    model=self.config.deployment_name,
                     messages=[
                         {"role": "system", "content": "You are a documentation expert."},
                         {"role": "user", "content": prompt}
@@ -333,12 +388,12 @@ class AzureOpenAIClient:
 
                 return {
                     'content': response.choices[0].message.content,
-                    'usage': response.usage._asdict()
+                    'usage': response.usage.model_dump()
                 }
 
             except Exception as e:
                 log_error(f"API error (attempt {attempt + 1}): {e}")
-                if attempt == self.max_retries - 1:
+                if attempt == self.config.max_retries - 1:
                     self.monitor.log_request(
                         func_name,
                         status="error",
@@ -348,47 +403,114 @@ class AzureOpenAIClient:
                         error=str(e)
                     )
                     return None
-                await asyncio.sleep(2 ** attempt)
+                time.sleep(self.config.retry_delay ** attempt)
 
-    async def validate_response(self, response: Dict[str, Any]) -> bool:
+    def validate_response(self, response: Dict[str, Any]) -> bool:
         """
-        Validate the response from the API to ensure it contains required fields.
+        Validate the response from the API to ensure it contains required fields and proper content.
 
         Args:
-            response (Dict[str, Any]): The response from the API.
+            response (Dict[str, Any]): The response from the API containing content and usage information.
+                Expected format:
+                {
+                    "content": {
+                        "docstring": str,
+                        "summary": str,
+                        "complexity_score": int,
+                        "changelog": str
+                    },
+                    "usage": {
+                        "prompt_tokens": int,
+                        "completion_tokens": int,
+                        "total_tokens": int
+                    }
+                }
 
         Returns:
-            bool: True if the response is valid, False otherwise.
+            bool: True if the response is valid and contains all required fields with proper content,
+                False otherwise.
+
+        Note:
+            This method performs the following validations:
+            1. Checks for presence of required fields
+            2. Validates that docstring and summary are non-empty strings
+            3. Verifies that complexity_score is a valid integer
+            4. Ensures usage information is present and valid
         """
         try:
-            required_fields = ["docstring", "summary"]
-            if not all(field in response["content"] for field in required_fields):
-                log_error("Response missing required fields")
+            # Check if response has the basic required structure
+            if not isinstance(response, dict) or "content" not in response:
+                log_error("Response missing basic structure")
                 return False
 
-            if not response["content"]["docstring"].strip():
-                log_error("Empty docstring in response")
+            content = response["content"]
+
+            # Validate required fields exist
+            required_fields = ["docstring", "summary", "complexity_score", "changelog"]
+            missing_fields = [field for field in required_fields if field not in content]
+            if missing_fields:
+                log_error(f"Response missing required fields: {missing_fields}")
                 return False
 
-            if not response["content"]["summary"].strip():
-                log_error("Empty summary in response")
+            # Validate docstring
+            if not isinstance(content["docstring"], str) or not content["docstring"].strip():
+                log_error("Invalid or empty docstring")
                 return False
+
+            # Validate summary
+            if not isinstance(content["summary"], str) or not content["summary"].strip():
+                log_error("Invalid or empty summary")
+                return False
+
+            # Validate complexity score
+            if not isinstance(content["complexity_score"], int) or not 0 <= content["complexity_score"] <= 100:
+                log_error("Invalid complexity score")
+                return False
+
+            # Validate changelog
+            if not isinstance(content["changelog"], str):
+                log_error("Invalid changelog format")
+                return False
+
+            # Validate usage information if present
+            if "usage" in response:
+                usage = response["usage"]
+                required_usage_fields = ["prompt_tokens", "completion_tokens", "total_tokens"]
+                if not all(field in usage for field in required_usage_fields):
+                    log_error("Missing usage information fields")
+                    return False
+                
+                # Verify all token counts are non-negative integers
+                if not all(isinstance(usage[field], int) and usage[field] >= 0 
+                        for field in required_usage_fields):
+                    log_error("Invalid token count in usage information")
+                    return False
+
+                # Verify total tokens is sum of prompt and completion tokens
+                if usage["total_tokens"] != usage["prompt_tokens"] + usage["completion_tokens"]:
+                    log_error("Inconsistent token counts in usage information")
+                    return False
 
             log_info("Response validation successful")
+            log_debug(f"Validated response content: {content}")
             return True
 
         except KeyError as e:
             log_error(f"KeyError during response validation: {e}")
             return False
-        except Exception as e:
-            log_error(f"Error validating response: {e}")
+        except TypeError as e:
+            log_error(f"TypeError during response validation: {e}")
             return False
+        except Exception as e:
+            log_error(f"Unexpected error during response validation: {e}")
+            return False
+
     def reset_retry_counter(self) -> None:
         """Reset the retry counter after successful operation."""
         self.current_retry = 0
         log_debug("Retry counter reset")
 
-    async def handle_rate_limits(self, retry_after: Optional[int] = None):
+    def handle_rate_limits(self, retry_after: Optional[int] = None):
         """
         Handle rate limits by waiting for a specified duration before retrying.
 
@@ -399,21 +521,21 @@ class AzureOpenAIClient:
             TooManyRetriesError: If maximum retry attempts exceeded
             
         Note:
-            Uses exponential backoff with a maximum wait time of 60 seconds
+            Uses exponential backoff with a maximum wait time based on configuration
             when retry_after is not provided.
         """
         try:
-            if self.current_retry >= self.max_retries:
-                raise TooManyRetriesError(f"Maximum retry attempts ({self.max_retries}) exceeded")
+            if self.current_retry >= self.config.max_retries:
+                raise TooManyRetriesError(f"Maximum retry attempts ({self.config.max_retries}) exceeded")
                 
             wait_time = retry_after if retry_after else min(
-                self.BASE_WAIT_TIME ** self.current_retry, 
-                self.MAX_WAIT_TIME
+                self.config.retry_delay ** self.current_retry, 
+                self.config.request_timeout
             )
-            log_info(f"Rate limit encountered. Waiting {wait_time}s (attempt {self.current_retry + 1}/{self.max_retries})")
+            log_info(f"Rate limit encountered. Waiting {wait_time}s (attempt {self.current_retry + 1}/{self.config.max_retries})")
             
             self.current_retry += 1
-            await asyncio.sleep(wait_time)
+            time.sleep(wait_time)
             
         except TooManyRetriesError as e:
             log_error(f"Rate limit retry failed: {str(e)}")
@@ -422,7 +544,7 @@ class AzureOpenAIClient:
             log_error(f"Unexpected error in rate limit handling: {str(e)}")
             raise
 
-    async def close(self):
+    def close(self):
         """
         Close the Azure OpenAI client and release any resources.
         """
@@ -434,17 +556,10 @@ class AzureOpenAIClient:
     def __enter__(self):
         return self
 
-    async def __aenter__(self):
-        return self
-
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_type:
             log_error(f"Error in context manager: {exc_val}")
-
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        await self.close()
-        if exc_type:
-            log_error(f"Error in async context manager: {exc_val}")
+        self.close()
 
     @property
     def is_ready(self) -> bool:
@@ -454,7 +569,7 @@ class AzureOpenAIClient:
         Returns:
             bool: True if the client is properly configured, False otherwise.
         """
-        return bool(self.endpoint and self.api_key and self.client)
+        return bool(self.client)
 
     def get_client_info(self) -> Dict[str, Any]:
         """
@@ -464,14 +579,14 @@ class AzureOpenAIClient:
             Dict[str, Any]: A dictionary containing client configuration details.
         """
         return {
-            "endpoint": self.endpoint,
-            "model": self.model,
-            "api_version": self.api_version,
-            "max_retries": self.max_retries,
+            "endpoint": self.config.endpoint,
+            "model": self.config.deployment_name,
+            "api_version": self.config.api_version,
+            "max_retries": self.config.max_retries,
             "is_ready": self.is_ready,
         }
 
-    async def health_check(self) -> bool:
+    def health_check(self) -> bool:
         """
         Perform a health check to verify the service is operational.
 
@@ -479,7 +594,7 @@ class AzureOpenAIClient:
             bool: True if the service is healthy, False otherwise.
         """
         try:
-            response = await self.get_docstring(
+            response = self.get_docstring(
                 func_name="test_function",
                 params=[("test_param", "str")],
                 return_type="None",
@@ -491,9 +606,9 @@ class AzureOpenAIClient:
             log_error(f"Health check failed: {e}")
             return False
 
-if __name__ == "__main__":
 
-    async def test_client():
+if __name__ == "__main__":
+    def test_client():
         """
         Test the AzureOpenAIClient by performing a health check and generating a docstring.
         """
@@ -503,10 +618,19 @@ if __name__ == "__main__":
             log_error("Client not properly configured")
             return
 
-        is_healthy = await client.health_check()
+        # Validate connection
+        try:
+            if client.validate_connection():
+                log_info("Connection is valid. Proceeding with operations.")
+            else:
+                log_error("Connection validation failed.")
+        except ConnectionError as e:
+            log_error(f"Connection error: {e}")
+
+        is_healthy = client.health_check()
         print(f"Service health check: {'Passed' if is_healthy else 'Failed'}")
 
-        test_response = await client.get_docstring(
+        test_response = client.get_docstring(
             func_name="example_function",
             params=[("param1", "str"), ("param2", "int")],
             return_type="bool",
@@ -520,6 +644,6 @@ if __name__ == "__main__":
         else:
             print("Test failed!")
 
-        await client.close()
+        client.close()
 
-    asyncio.run(test_client())
+    test_client()

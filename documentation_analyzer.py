@@ -1,3 +1,24 @@
+"""
+documentation_analyzer.py - Docstring Analysis System
+
+This module analyzes existing docstrings to determine if they are complete and correct,
+according to a predefined schema.
+
+Classes:
+    DocumentationAnalyzer: Analyzes existing docstrings to determine if they are complete and correct.
+
+Methods:
+    is_docstring_complete(docstring_data: Optional[DocstringSchema]) -> bool: Checks if docstring data is complete according to schema.
+    analyze_node(node: ast.AST) -> Optional[DocstringSchema]: Analyzes AST node and returns schema-compliant docstring data.
+    is_docstring_incomplete(function_node: ast.FunctionDef) -> bool: Determines if the existing docstring for a function is incomplete.
+    is_class_docstring_incomplete(class_node: ast.ClassDef) -> bool: Checks if a class has an incomplete docstring.
+    _parse_docstring_sections(docstring: str) -> dict: Parses the docstring into sections based on Google style.
+    _verify_args_section(function_node: ast.FunctionDef, args_section: str) -> list: Verifies that all parameters are documented in the Args section.
+    _extract_documented_args(args_section: str) -> list: Extracts parameter names from the Args section.
+    _verify_returns_section(function_node: ast.FunctionDef, returns_section: str) -> list: Verifies that the Returns section exists and is correctly documented.
+    verify_raises_section(function_node: ast.FunctionDef, raises_section: str) -> List[str]: Verifies that the Raises section exists if the function raises exceptions.
+    _parse_existing_docstring(docstring: str) -> DocstringSchema: Placeholder method to parse an existing docstring into a DocstringSchema.
+"""
 from schema import DocstringSchema, JSON_SCHEMA
 from jsonschema import validate, ValidationError
 import ast
@@ -7,6 +28,18 @@ from logger import log_info, log_error, log_debug
 class DocumentationAnalyzer:
     """
     Analyzes existing docstrings to determine if they are complete and correct.
+
+    Methods:
+        is_docstring_complete(docstring_data: Optional[DocstringSchema]) -> bool: Checks if docstring data is complete according to schema.
+        analyze_node(node: ast.AST) -> Optional[DocstringSchema]: Analyzes AST node and returns schema-compliant docstring data.
+        is_docstring_incomplete(function_node: ast.FunctionDef) -> bool: Determines if the existing docstring for a function is incomplete.
+        is_class_docstring_incomplete(class_node: ast.ClassDef) -> bool: Checks if a class has an incomplete docstring.
+        _parse_docstring_sections(docstring: str) -> dict: Parses the docstring into sections based on Google style.
+        _verify_args_section(function_node: ast.FunctionDef, args_section: str) -> list: Verifies that all parameters are documented in the Args section.
+        _extract_documented_args(args_section: str) -> list: Extracts parameter names from the Args section.
+        _verify_returns_section(function_node: ast.FunctionDef, returns_section: str) -> list: Verifies that the Returns section exists and is correctly documented.
+        verify_raises_section(function_node: ast.FunctionDef, raises_section: str) -> List[str]: Verifies that the Raises section exists if the function raises exceptions.
+        _parse_existing_docstring(docstring: str) -> DocstringSchema: Placeholder method to parse an existing docstring into a DocstringSchema.
     """
 
     def is_docstring_complete(self, docstring_data: Optional[DocstringSchema]) -> bool:
@@ -21,7 +54,11 @@ class DocumentationAnalyzer:
             log_info("Docstring is complete and valid according to schema.")
             return True
         except ValidationError as e:
-            log_error(f"Docstring validation error: {e}")
+            # Log detailed information about the validation failure
+            log_error(f"Docstring validation error: {e.message}")
+            log_error(f"Failed docstring content: {docstring_data}")
+            log_error(f"Schema path: {e.schema_path}")
+            log_error(f"Validator: {e.validator} - Constraint: {e.validator_value}")
             return False
 
     def analyze_node(self, node: ast.AST) -> Optional[DocstringSchema]:

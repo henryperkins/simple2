@@ -1,9 +1,30 @@
+"""
+Logger Configuration Module
+
+This module provides functionality to configure and use a logger for the application.
+It sets up a logger with both file and console handlers, allowing for detailed logging
+of information, errors, debug messages, and exceptions.
+
+Version: 1.0.0
+Author: Development Team
+"""
+
 import logging
 import os
 from logging.handlers import RotatingFileHandler
 
 def configure_logger(name='docstring_workflow', log_file='workflow.log', level=None):
-    """Configure and return a logger for the application."""
+    """
+    Configure and return a logger for the application.
+
+    Args:
+        name (str): The name of the logger.
+        log_file (str): The file to which logs should be written.
+        level (int): The logging level (e.g., logging.DEBUG).
+
+    Returns:
+        logging.Logger: Configured logger instance.
+    """
     if level is None:
         level = os.getenv('LOG_LEVEL', logging.DEBUG)
 

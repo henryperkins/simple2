@@ -50,3 +50,7 @@ __pycache__/
 workflow.log.1
 extract/__pycache__
 test_metrics.py
+venv/bin
+venv/include
+venv/lib
+venv/lib64

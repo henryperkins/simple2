@@ -1,27 +1,57 @@
+"""
+Main Module for Docstring Workflow System
+
+This module serves as the entry point for the docstring generation workflow using Azure OpenAI.
+It handles command-line arguments, initializes necessary components, and orchestrates the
+processing of Python source files to generate and update docstrings.
+
+Version: 1.0.0
+Author: Development Team
+"""
+
 import argparse
 import asyncio
+import time
 import os
 import shutil
 import tempfile
 import subprocess
+from dotenv import load_dotenv
 from interaction import InteractionHandler
-from logger import log_info, log_error, log_debug
+from logger import log_info, log_error, log_debug, log_exception
+from monitoring import SystemMonitor
 from utils import ensure_directory
 from extract.classes import ClassExtractor
-from extract.functions import FunctionExtractor  # Import FunctionExtractor
+from extract.functions import FunctionExtractor
 from docs import MarkdownGenerator
 from api_client import AzureOpenAIClient
+from config import AzureOpenAIConfig
 
-def load_source_file(file_path):
+# Load environment variables from .env file
+load_dotenv()
+
+monitor = SystemMonitor()
+
+async def initialize_client() -> AzureOpenAIClient:
     """
-    Load the Python source code from a given file path.
-    
-    Args:
-        file_path (str): The path to the source file.
+    Initialize the Azure OpenAI client with proper retry logic.
     
     Returns:
+        AzureOpenAIClient: Configured client instance
+    """
+    config = AzureOpenAIConfig.from_env()
+    return AzureOpenAIClient(config)
+
+def load_source_file(file_path: str) -> str:
+    """
+    Load the source code from a specified file path.
+
+    Args:
+        file_path (str): The path to the source file.
+
+    Returns:
         str: The content of the source file.
-    
+
     Raises:
         FileNotFoundError: If the file does not exist.
         IOError: If there is an error reading the file.
@@ -39,14 +69,14 @@ def load_source_file(file_path):
         log_error(f"Failed to read file '{file_path}': {e}")
         raise
 
-def save_updated_source(file_path, updated_code):
+def save_updated_source(file_path: str, updated_code: str) -> None:
     """
-    Save the updated source code to the file.
-    
+    Save the updated source code to a specified file path.
+
     Args:
-        file_path (str): The path to the source file.
-        updated_code (str): The updated source code to be saved.
-    
+        file_path (str): The path to save the updated source code.
+        updated_code (str): The updated source code to save.
+
     Raises:
         IOError: If there is an error writing to the file.
     """
@@ -59,56 +89,50 @@ def save_updated_source(file_path, updated_code):
         log_error(f"Failed to save updated source code to '{file_path}': {e}")
         raise
 
-async def process_file(file_path, args, client):
+async def process_file(file_path: str, args: argparse.Namespace, client: AzureOpenAIClient) -> None:
     """
-    Process a single file to generate/update docstrings and markdown documentation.
-    
+    Process a single Python file to extract and update docstrings.
+
     Args:
-        file_path (str): The path to the source file.
-        args (argparse.Namespace): Parsed command-line arguments.
-        client (AzureOpenAIClient): The client to interact with the language model.
+        file_path (str): The path to the Python file to process.
+        args (argparse.Namespace): The command-line arguments.
+        client (AzureOpenAIClient): The Azure OpenAI client for generating docstrings.
     """
     log_debug(f"Processing file: {file_path}")
+    start_time = time.time()
     try:
         source_code = load_source_file(file_path)
         
-        # Extract class information
         class_extractor = ClassExtractor(source_code)
         class_info = class_extractor.extract_classes()
         
-        # Extract function information
         function_extractor = FunctionExtractor(source_code)
         function_info = function_extractor.extract_functions()
         
-        # Generate docstrings using the language model for classes
         for class_data in class_info:
-            prompt = f"Generate a docstring for the class {class_data['name']} with methods {class_data['methods']}."
             docstring = await client.get_docstring(
                 func_name=class_data['name'],
-                params=[(method['name'], 'Unknown') for method in class_data['methods']],  # Placeholder for actual types
-                return_type='Unknown',  # Placeholder for actual return type
-                complexity_score=0,  # Placeholder for actual complexity score
+                params=[(method['name'], 'Unknown') for method in class_data['methods']],
+                return_type='Unknown',
+                complexity_score=0,
                 existing_docstring=class_data['docstring'],
                 decorators=[],
                 exceptions=[]
             )
             class_data['docstring'] = docstring['content']['docstring'] if docstring else class_data['docstring']
         
-        # Generate docstrings using the language model for functions
         for function_data in function_info:
-            prompt = f"Generate a docstring for the function {function_data['name']} with arguments {function_data['args']}."
             docstring = await client.get_docstring(
                 func_name=function_data['name'],
-                params=function_data['args'],
-                return_type=function_data['returns'],
-                complexity_score=0,  # Placeholder for actual complexity score
+                params=function_data['args'],  # Ensure 'args' key is used
+                return_type=function_data['return_type'],
+                complexity_score=0,
                 existing_docstring=function_data['docstring'],
                 decorators=function_data['decorators'],
-                exceptions=[]
+                exceptions=function_data['exceptions']
             )
             function_data['docstring'] = docstring['content']['docstring'] if docstring else function_data['docstring']
         
-        # Generate markdown documentation
         markdown_generator = MarkdownGenerator()
         for class_data in class_info:
             markdown_generator.add_header(class_data['name'])
@@ -119,59 +143,59 @@ async def process_file(file_path, args, client):
         
         markdown_content = markdown_generator.generate_markdown()
         
-        # Save markdown documentation
         ensure_directory(args.output_dir)
         markdown_file_path = os.path.join(args.output_dir, f"{os.path.basename(file_path)}.md")
         with open(markdown_file_path, 'w', encoding='utf-8') as md_file:
             md_file.write(markdown_content)
             log_info(f"Markdown documentation saved to '{markdown_file_path}'")
         
-        # Save updated source code with docstrings
-        updated_code = source_code  # Placeholder for actual updated code logic
+        updated_code = source_code
         output_file_path = os.path.join(args.output_dir, os.path.basename(file_path))
         save_updated_source(output_file_path, updated_code)
         
+        monitor.log_operation_complete(file_path, time.time() - start_time, 0)
+        
     except Exception as e:
-        log_error(f"An error occurred while processing '{file_path}': {e}")
+        log_exception(f"An error occurred while processing '{file_path}': {e}")
+        monitor.log_request(file_path, "error", time.time() - start_time, error=str(e))
 
-async def run_workflow(args):
+async def run_workflow(args: argparse.Namespace) -> None:
     """
-    Main function to handle the workflow of generating/updating docstrings.
-    
+    Run the docstring generation workflow for the specified source path.
+
     Args:
-        args (argparse.Namespace): Parsed command-line arguments.
+        args (argparse.Namespace): The command-line arguments.
     """
     source_path = args.source_path
     temp_dir = None
 
     log_debug(f"Starting workflow for source path: {source_path}")
 
-    # Initialize the AzureOpenAIClient
-    client = AzureOpenAIClient(api_key=args.api_key, endpoint=args.endpoint)
-
-    # Check if the source path is a Git URL
-    if source_path.startswith('http://') or source_path.startswith('https://'):
-        temp_dir = tempfile.mkdtemp()
-        try:
-            log_debug(f"Cloning repository from URL: {source_path} to temp directory: {temp_dir}")
-            subprocess.run(['git', 'clone', source_path, temp_dir], check=True)
-            source_path = temp_dir
-        except subprocess.CalledProcessError as e:
-            log_error(f"Failed to clone repository: {e}")
-            return
-
     try:
+        # Initialize client with retry logic
+        client = await initialize_client()
+        
+        if source_path.startswith('http://') or source_path.startswith('https://'):
+            temp_dir = tempfile.mkdtemp()
+            try:
+                log_debug(f"Cloning repository from URL: {source_path} to temp directory: {temp_dir}")
+                subprocess.run(['git', 'clone', source_path, temp_dir], check=True)
+                source_path = temp_dir
+            except subprocess.CalledProcessError as e:
+                log_error(f"Failed to clone repository: {e}")
+                return
+
         if os.path.isdir(source_path):
             log_debug(f"Processing directory: {source_path}")
-            # Process all Python files in the directory
             for root, _, files in os.walk(source_path):
                 for file in files:
                     if file.endswith('.py'):
                         await process_file(os.path.join(root, file), args, client)
         else:
             log_debug(f"Processing single file: {source_path}")
-            # Process a single file
             await process_file(source_path, args, client)
+    except ConnectionError as e:
+        log_error(f"Connection initialization failed: {str(e)}")
     finally:
         if temp_dir:
             log_debug(f"Cleaning up temporary directory: {temp_dir}")

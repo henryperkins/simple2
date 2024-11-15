@@ -4,6 +4,16 @@ docs.py - Documentation Generation System
 
 This module provides a comprehensive system for generating documentation from Python source code,
 including docstring management, markdown generation, and documentation workflow automation.
+
+Classes:
+    DocStringManager: Manages docstring operations for source code files.
+    DocStringParser: Handles parsing and extraction of docstrings from Python source code.
+    DocStringGenerator: Generates docstrings for Python code elements.
+    MarkdownGenerator: Generates markdown documentation from Python code elements.
+    DocumentationManager: Manages the overall documentation generation process.
+
+Functions:
+    main(): Demonstrates usage of the documentation system.
 """
 
 import ast
@@ -14,7 +24,14 @@ from pathlib import Path
 from datetime import datetime
 
 class DocStringManager:
-    """Manages docstring operations for source code files."""
+    """
+    Manages docstring operations for source code files.
+
+    Attributes:
+        source_code (str): The source code to manage docstrings for.
+        tree (ast.AST): The abstract syntax tree of the source code.
+        docstring_parser (DocStringParser): An instance of DocStringParser for parsing operations.
+    """
 
     def __init__(self, source_code: str):
         """
@@ -97,7 +114,13 @@ class DocStringManager:
         return markdown
     
 class DocStringParser:
-    """Handles parsing and extraction of docstrings from Python source code."""
+    """
+    Handles parsing and extraction of docstrings from Python source code.
+
+    Methods:
+        extract_docstring(source_code: str) -> Optional[str]: Extracts the module-level docstring.
+        parse_function_docstring(func) -> Dict[str, Any]: Parses function docstring into a structured format.
+    """
     
     @staticmethod
     def extract_docstring(source_code: str) -> Optional[str]:
@@ -180,7 +203,13 @@ class DocStringParser:
         return sections
 
 class DocStringGenerator:
-    """Generates docstrings for Python code elements."""
+    """
+    Generates docstrings for Python code elements.
+
+    Methods:
+        generate_class_docstring(class_name: str, description: str) -> str: Generates a docstring for a class.
+        generate_function_docstring(func_name: str, params: List[str], description: str, returns: Optional[str] = None) -> str: Generates a docstring for a function.
+    """
 
     @staticmethod
     def generate_class_docstring(class_name: str, description: str) -> str:
@@ -229,7 +258,18 @@ class DocStringGenerator:
         return docstring
 
 class MarkdownGenerator:
-    """Generates markdown documentation from Python code elements."""
+    """
+    Generates markdown documentation from Python code elements.
+
+    Attributes:
+        output (List[str]): List of markdown lines to be generated.
+
+    Methods:
+        add_header(text: str, level: int = 1) -> None: Adds a header to the markdown document.
+        add_code_block(code: str, language: str = "python") -> None: Adds a code block to the markdown document.
+        add_section(title: str, content: str, level: int = 3) -> None: Adds a section with title and content.
+        generate_markdown() -> str: Generates the final markdown document.
+    """
 
     def __init__(self):
         """Initialize the MarkdownGenerator."""
@@ -280,7 +320,22 @@ class MarkdownGenerator:
         return "\n".join(self.output)
 
 class DocumentationManager:
-    """Manages the overall documentation generation process."""
+    """
+    Manages the overall documentation generation process.
+
+    Attributes:
+        output_dir (Path): Directory for output documentation.
+        parser (DocStringParser): Instance for parsing docstrings.
+        generator (DocStringGenerator): Instance for generating docstrings.
+        markdown (MarkdownGenerator): Instance for generating markdown.
+        logger (logging.Logger): Logger instance for logging.
+
+    Methods:
+        process_file(file_path: Union[str, Path]) -> Optional[str]: Processes a single Python file for documentation.
+        process_directory(directory_path: Union[str, Path]) -> Dict[str, str]: Processes all Python files in a directory.
+        save_documentation(content: str, output_file: Union[str, Path]) -> bool: Saves documentation content to a file.
+        generate_index(docs_map: Dict[str, str]) -> str: Generates an index page for all documentation files.
+    """
 
     def __init__(self, output_dir: str = "docs"):
         """
@@ -487,38 +542,3 @@ class DocumentationManager:
 
         logging.info("Documentation index generated.")
         return "\n".join(index_content)
-
-def main():
-    """Main function to demonstrate usage of the documentation system."""
-    # Setup logging
-    logging.basicConfig(
-        level=logging.DEBUG,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-    )
-    logger = logging.getLogger(__name__)
-
-    try:
-        # Initialize DocumentationManager
-        doc_manager = DocumentationManager(output_dir="generated_docs")
-
-        # Example usage
-        source_dir = "."  # Current directory
-        docs_map = doc_manager.process_directory(source_dir)
-
-        # Generate and save documentation for each file
-        for file_path, content in docs_map.items():
-            output_file = Path("generated_docs") / Path(file_path).with_suffix('.md').name
-            doc_manager.save_documentation(content, output_file)
-
-        # Generate and save index
-        index_content = doc_manager.generate_index(docs_map)
-        doc_manager.save_documentation(index_content, "generated_docs/index.md")
-
-        logger.info("Documentation generation completed successfully")
-
-    except Exception as e:
-        logger.error(f"Documentation generation failed: {e}")
-        raise
-
-if __name__ == "__main__":
-    main()

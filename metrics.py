@@ -22,6 +22,10 @@ class MetricsError(Exception):
 class Metrics:
     """
     Provides methods to calculate different complexity metrics for Python functions.
+
+    This class includes methods for calculating cyclomatic complexity, cognitive complexity,
+    Halstead metrics, and maintainability index. It also provides functionality to analyze
+    module dependencies.
     """
 
     MAINTAINABILITY_THRESHOLDS = {
@@ -86,6 +90,7 @@ class Metrics:
 
         log_info(f"Calculated cyclomatic complexity for function '{function_node.name}' is {complexity}")
         return complexity
+
     @staticmethod
     def calculate_cognitive_complexity(function_node: ast.FunctionDef) -> int:
         """
@@ -138,6 +143,7 @@ class Metrics:
         overall_complexity = cyclomatic_complexity + cognitive_complexity
         log_info(f"Calculated overall complexity for function '{node.name}' is {overall_complexity}")
         return overall_complexity
+
     def calculate_maintainability_index(self, node: ast.AST) -> float:
         """
         Calculate maintainability index based on various metrics.
@@ -326,6 +332,12 @@ class Metrics:
             log_error(f"Error categorizing import {module_name}: {e}")
 
 def test_metrics():
+    """
+    Test function for the Metrics class.
+
+    This function tests the calculation of cyclomatic and cognitive complexity
+    for a sample function defined in source_code.
+    """
     log_info("Starting test_metrics.")
     source_code = """
 def example_function(x):

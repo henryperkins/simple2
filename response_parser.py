@@ -1,3 +1,18 @@
+"""
+response_parser.py - AI Response Parsing System
+
+This module provides functionality to parse and validate responses from Azure OpenAI,
+focusing on extracting docstrings, summaries, and other metadata.
+
+Classes:
+    ResponseParser: Parses the response from Azure OpenAI to extract docstring, summary, and other relevant metadata.
+
+Methods:
+    parse_docstring_response(response: str) -> Optional[DocstringSchema]: Parses and validates AI response against schema.
+    parse_json_response(response: str) -> Optional[Dict[str, Any]]: Parses the Azure OpenAI response to extract generated docstring and related details.
+    _parse_plain_text_response(text: str) -> dict: Fallback parser for plain text responses from Azure OpenAI.
+"""
+
 import asyncio
 from schema import DocstringSchema, JSON_SCHEMA
 from jsonschema import validate
@@ -9,7 +24,13 @@ from logger import log_info, log_error, log_debug
 class ResponseParser:
     """
     Parses the response from Azure OpenAI to extract docstring, summary, and other relevant metadata.
+
+    Methods:
+        parse_docstring_response(response: str) -> Optional[DocstringSchema]: Parses and validates AI response against schema.
+        parse_json_response(response: str) -> Optional[Dict[str, Any]]: Parses the Azure OpenAI response to extract generated docstring and related details.
+        _parse_plain_text_response(text: str) -> dict: Fallback parser for plain text responses from Azure OpenAI.
     """
+
 
     def parse_docstring_response(self, response: str) -> Optional[DocstringSchema]:
         """Parse and validate AI response against schema."""
@@ -23,7 +44,11 @@ class ResponseParser:
         except json.JSONDecodeError as e:
             log_error(f"JSON decoding error: {e}")
         except ValidationError as e:
-            log_error(f"Schema validation error: {e}")
+            # Log detailed information about the validation failure
+            log_error(f"Docstring validation error: {e.message}")
+            log_error(f"Failed docstring content: {docstring_data}")
+            log_error(f"Schema path: {e.schema_path}")
+            log_error(f"Validator: {e.validator} - Constraint: {e.validator_value}")
         except Exception as e:
             log_error(f"Unexpected error during docstring parsing: {e}")
         return None
@@ -61,7 +86,11 @@ class ResponseParser:
         except json.JSONDecodeError as e:
             log_error(f"Failed to parse response as JSON: {e}")
         except ValidationError as e:
-            log_error(f"Schema validation error: {e}")
+            # Log detailed information about the validation failure
+            log_error(f"Response validation error: {e.message}")
+            log_error(f"Failed response content: {response_json}")
+            log_error(f"Schema path: {e.schema_path}")
+            log_error(f"Validator: {e.validator} - Constraint: {e.validator_value}")
         except Exception as e:
             log_error(f"Unexpected error during JSON response parsing: {e}")
         return None
