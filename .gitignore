@@ -1,4 +1,6 @@
 # Python Virtual Environment
+__pycache__
+.pytest_cache
 venv/ .env/ env/ *.venv .venv/
 
 # Python bytecode
