@@ -56,3 +56,7 @@ venv/bin
 venv/include
 venv/lib
 venv/lib64
+.env
+workflow.log.2
+workflow.log.3
+venv/pyvenv.cfg
