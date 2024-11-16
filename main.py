@@ -5,17 +5,17 @@ This module serves as the entry point for the docstring generation workflow usin
 It handles command-line arguments, initializes necessary components, and orchestrates the
 processing of Python source files to generate and update docstrings.
 
-Version: 1.0.0
+Version: 1.0.1
 Author: Development Team
 """
 
 import argparse
 import asyncio
-import time
 import os
 import shutil
 import tempfile
 import subprocess
+import time
 import signal
 from contextlib import contextmanager
 from typing import Optional
@@ -29,8 +29,7 @@ from extract.functions import FunctionExtractor
 from docs import MarkdownGenerator
 from api_client import AzureOpenAIClient
 from config import AzureOpenAIConfig
-from documentation_analyzer import DocumentationAnalyzer
-from docstring_utils import parse_docstring, validate_docstring
+from docstring_utils import parse_docstring, validate_docstring, analyze_code_element_docstring
 
 # Load environment variables from .env file
 load_dotenv()
@@ -60,9 +59,13 @@ def cleanup_context(temp_dir: Optional[str] = None):
             except Exception as e:
                 log_error(f"Error during cleanup: {e}")
 
-async def initialize_client() -> AzureOpenAIClient:
+async def initialize_client(api_key: str, endpoint: str) -> AzureOpenAIClient:
     """
     Initialize the Azure OpenAI client with proper retry logic.
+    
+    Args:
+        api_key (str): The API key for Azure OpenAI.
+        endpoint (str): The Azure OpenAI endpoint.
     
     Returns:
         AzureOpenAIClient: Configured client instance
@@ -133,7 +136,6 @@ async def process_file(file_path: str, args: argparse.Namespace, client: AzureOp
     log_debug(f"Processing file: {file_path}")
     start_time = time.time()
     interaction_handler = InteractionHandler(client=client)
-    doc_analyzer = DocumentationAnalyzer()
     failed_items = []
 
     try:
@@ -149,7 +151,8 @@ async def process_file(file_path: str, args: argparse.Namespace, client: AzureOp
         # Process classes
         for class_data in class_info:
             try:
-                if doc_analyzer.is_class_docstring_incomplete(class_data['docstring']):
+                issues = analyze_code_element_docstring(class_data['node'])
+                if issues:
                     docstring = await client.get_docstring(
                         func_name=class_data['name'],
                         params=[(method['name'], 'Unknown') for method in class_data['methods']],
@@ -172,7 +175,8 @@ async def process_file(file_path: str, args: argparse.Namespace, client: AzureOp
         # Process functions
         for function_data in function_info:
             try:
-                if doc_analyzer.is_docstring_incomplete(function_data['docstring']):
+                issues = analyze_code_element_docstring(function_data['node'])
+                if issues:
                     docstring = await client.get_docstring(
                         func_name=function_data['name'],
                         params=function_data['args'],
@@ -235,7 +239,7 @@ async def run_workflow(args: argparse.Namespace) -> None:
 
     try:
         # Initialize client with timeout
-        client = await asyncio.wait_for(initialize_client(), timeout=30)
+        client = await asyncio.wait_for(initialize_client(args.api_key, args.endpoint), timeout=30)
         
         if source_path.startswith(('http://', 'https://')):
             temp_dir = tempfile.mkdtemp()

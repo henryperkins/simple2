@@ -5,14 +5,14 @@ This module provides functionality to extract class definitions and their metada
 from Python source code. It uses the Abstract Syntax Tree (AST) to analyze source code
 and extract relevant information such as methods, attributes, and docstrings.
 
-Version: 1.0.0
+Version: 1.0.1
 Author: Development Team
 """
 
 import ast
 from typing import List, Dict, Any, Optional
 from logger import log_info, log_error, log_debug
-from base import BaseExtractor  # Import the updated BaseExtractor
+from extract.base import BaseExtractor
 
 class ClassExtractor(BaseExtractor):
     """

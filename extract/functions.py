@@ -5,14 +5,14 @@ This module provides functionality to extract function definitions and their met
 from Python source code. It uses the Abstract Syntax Tree (AST) to analyze source code
 and extract relevant information such as parameters, return types, and docstrings.
 
-Version: 1.0.0
+Version: 1.0.1
 Author: Development Team
 """
 
 import ast
 from typing import List, Dict, Any, Optional, Tuple
 from logger import log_info, log_error, log_debug
-from base import BaseExtractor  # Import the updated BaseExtractor
+from extract.base import BaseExtractor
 
 class FunctionExtractor(BaseExtractor):
     """

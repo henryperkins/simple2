@@ -44,6 +44,7 @@ JSON_SCHEMA = {
     "additionalProperties": False
 }
 
+
 def parse_docstring(docstring: str) -> Dict[str, Any]:
     """Parse a docstring into structured sections.
 
@@ -73,6 +74,7 @@ def parse_docstring(docstring: str) -> Dict[str, Any]:
 
     return sections
 
+
 def validate_docstring(docstring_data: Dict[str, Any]) -> bool:
     """Validate a docstring against the JSON schema.
 
@@ -88,6 +90,7 @@ def validate_docstring(docstring_data: Dict[str, Any]) -> bool:
     except ValidationError as e:
         logger.error(f"Docstring validation error: {e.message}")
         return False
+
 
 def analyze_code_element_docstring(node: ast.AST) -> List[str]:
     """Analyze the docstring of a code element for completeness.
@@ -115,6 +118,7 @@ def analyze_code_element_docstring(node: ast.AST) -> List[str]:
 
     return issues
 
+
 def _extract_documented_args(args_section: str) -> List[str]:
     """Extract parameter names from the Args section.
 
@@ -130,6 +134,7 @@ def _extract_documented_args(args_section: str) -> List[str]:
             arg_name = line.split(':')[0].strip()
             documented_args.append(arg_name)
     return documented_args
+
 
 def check_parameter_descriptions(docstring_data: Dict[str, Any], function_node: ast.FunctionDef) -> List[str]:
     """Check for the presence and quality of parameter descriptions.
@@ -161,6 +166,7 @@ def check_parameter_descriptions(docstring_data: Dict[str, Any], function_node: 
 
     return issues
 
+
 def check_return_description(docstring_data: Dict[str, Any], function_node: ast.FunctionDef) -> List[str]:
     """Check for the presence and quality of return value descriptions.
 
@@ -180,6 +186,7 @@ def check_return_description(docstring_data: Dict[str, Any], function_node: ast.
             issues.append("Return description is too short.")
 
     return issues
+
 
 def check_exception_details(docstring_data: Dict[str, Any], function_node: ast.FunctionDef) -> List[str]:
     """Check for the presence and quality of exception details.

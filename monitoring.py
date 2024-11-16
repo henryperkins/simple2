@@ -16,6 +16,7 @@ from datetime import datetime
 import json
 from logger import log_info, log_error, log_debug
 
+
 @dataclass
 class APIMetrics:
     """Metrics data structure for API operations."""
@@ -26,6 +27,7 @@ class APIMetrics:
     status: str
     error: Optional[str] = None
 
+
 @dataclass
 class BatchMetrics:
     """Metrics data structure for batch operations."""
@@ -35,6 +37,7 @@ class BatchMetrics:
     total_tokens: int
     total_time: float
     average_time_per_function: float
+
 
 class SystemMonitor:
     """

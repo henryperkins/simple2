@@ -5,7 +5,7 @@ This module manages the orchestration of docstring generation with integrated ca
 monitoring, and error handling. It processes functions and classes in batches and interacts with
 the Azure OpenAI API to generate documentation.
 
-Version: 1.2.0
+Version: 1.2.1
 Author: Development Team
 """
 
@@ -53,7 +53,13 @@ class InteractionHandler:
             cache_config (Optional[Dict]): Configuration for the cache.
             batch_size (int): Number of functions to process concurrently.
         """
-        self.client = client or AzureOpenAIClient(endpoint=endpoint, api_key=api_key)
+        if client is None:
+            if not endpoint or not api_key:
+                raise ValueError("Azure OpenAI endpoint and API key must be provided if client is not supplied.")
+            self.client = AzureOpenAIClient(endpoint=endpoint, api_key=api_key)
+        else:
+            self.client = client
+
         self.cache = Cache(**(cache_config or {}))
         self.monitor = SystemMonitor()
         self.batch_size = batch_size
@@ -78,7 +84,7 @@ class InteractionHandler:
             metadata = self.extraction_manager.extract_metadata(source_code)
             functions = metadata['functions']
             classes = metadata.get('classes', [])
-            
+
             log_info(f"Extracted {len(functions)} functions and {len(classes)} classes from source code.")
 
             # Process functions in batches
@@ -128,9 +134,10 @@ class InteractionHandler:
             updated_code = manager.update_source_code(documentation_entries)
             documentation = manager.generate_markdown_documentation(documentation_entries)
 
-            # Save the generated markdown documentation
+            # Save the generated markdown documentation using DocumentationManager
+            doc_manager = DocumentationManager(output_dir="generated_docs")
             output_file = "generated_docs/documentation.md"
-            manager.save_documentation(documentation, output_file)
+            doc_manager.save_documentation(documentation, output_file)
 
             # Log final metrics
             total_items = len(functions) + len(classes)

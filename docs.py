@@ -20,6 +20,7 @@ from typing import Optional, Dict, Any, List, Union
 from pathlib import Path
 from datetime import datetime
 from docstring_utils import parse_docstring, validate_docstring
+from logger import log_error
 
 class DocStringManager:
     """
@@ -49,8 +50,12 @@ class DocStringManager:
             node (ast.FunctionDef): The function node to update
             docstring (str): The new docstring to insert
         """
+        if not isinstance(docstring, str):
+            log_error(f"Invalid docstring for function '{node.name}'. Expected a string.")
+            return
         logging.debug(f"Inserting docstring into function '{node.name}'.")
         node.body.insert(0, ast.Expr(value=ast.Str(s=docstring)))
+
 
     def update_source_code(self, documentation_entries: List[Dict]) -> str:
         """
@@ -358,7 +363,7 @@ class DocumentationManager:
             output_file = Path(output_file)
             output_file.parent.mkdir(parents=True, exist_ok=True)
             
-            with open(output_file, 'w') as f:
+            with open(output_file, 'w', encoding='utf-8') as f:
                 f.write(content)
             
             self.logger.info(f"Documentation saved to {output_file}")

@@ -10,8 +10,9 @@ Author: Development Team
 
 import asyncio
 import time
+import openai
 from typing import List, Tuple, Optional, Dict, Any
-from openai import AzureOpenAI, APIError
+from openai import OpenAI, APIError, AzureOpenAI
 from logger import log_info, log_error, log_debug
 from token_management import TokenManager
 from cache import Cache
@@ -19,39 +20,21 @@ from response_parser import ResponseParser
 from config import AzureOpenAIConfig
 from exceptions import TooManyRetriesError
 
+
 class APIInteraction:
-    """Handles interactions with the Azure OpenAI API.
-
-    This class manages direct communication with the API, including request handling,
-    retries, rate limiting, and response processing.
-
-    Attributes:
-        client (AzureOpenAI): The Azure OpenAI client instance.
-        token_manager (TokenManager): Instance for managing tokens.
-        cache (Cache): Instance for caching responses.
-        parser (ResponseParser): Instance for parsing API responses.
-        config (AzureOpenAIConfig): Configuration instance for Azure OpenAI.
-        current_retry (int): Counter for the current retry attempt.
-    """
+    """Handles interactions with the Azure OpenAI API."""
 
     def __init__(self, config: AzureOpenAIConfig, token_manager: TokenManager, cache: Cache):
-        """Initializes the APIInteraction with necessary components.
-
-        Args:
-            config (AzureOpenAIConfig): Configuration instance for Azure OpenAI.
-            token_manager (TokenManager): Instance for managing tokens.
-            cache (Cache): Instance for caching responses.
-        """
-        self.client = AzureOpenAI(
-            api_key=config.api_key,
-            api_version=config.api_version,
-            azure_endpoint=config.endpoint
-        )
+        """Initializes the APIInteraction with necessary components."""
+        openai.api_key = config.api_key
+        openai.api_base = config.endpoint  # Azure-specific endpoint
+        openai.api_version = config.api_version
         self.token_manager = token_manager
         self.cache = cache
         self.parser = ResponseParser()
         self.config = config
         self.current_retry = 0
+        log_info("APIInteraction initialized with Azure OpenAI configuration.")
 
     async def get_docstring(
         self,
@@ -65,23 +48,8 @@ class APIInteraction:
         max_tokens: Optional[int] = None,
         temperature: Optional[float] = None
     ) -> Optional[Dict[str, Any]]:
-        """Generates a docstring for a function using Azure OpenAI.
-
-        Args:
-            func_name (str): Name of the function.
-            params (List[Tuple[str, str]]): List of parameter names and types.
-            return_type (str): Return type of the function.
-            complexity_score (int): Complexity score of the function.
-            existing_docstring (str): Existing docstring if any.
-            decorators (Optional[List[str]]): List of decorators.
-            exceptions (Optional[List[str]]): List of exceptions.
-            max_tokens (Optional[int]): Maximum tokens for response.
-            temperature (Optional[float]): Sampling temperature.
-
-        Returns:
-            Optional[Dict[str, Any]]: Generated docstring and metadata, or None if failed.
-        """
-        cache_key = f"{func_name}:{hash(str(params))}{hash(return_type)}"
+        """Generates a docstring for a function using Azure OpenAI."""
+        cache_key = f"{func_name}:{hash(str(params))}:{hash(return_type)}"
         
         try:
             # Check cache first
@@ -146,46 +114,34 @@ class APIInteraction:
         except Exception as e:
             log_error(f"Error in get_docstring for {func_name}: {e}")
             return None
-
-    async def _make_api_request(
-        self,
-        prompt: str,
-        max_tokens: Optional[int],
-        temperature: Optional[float],
-        attempt: int
-    ) -> Optional[Dict[str, Any]]:
-        """Makes an API request with proper configuration.
-
-        Args:
-            prompt (str): The prompt for the API request.
-            max_tokens (Optional[int]): Maximum tokens for response.
-            temperature (Optional[float]): Sampling temperature.
-            attempt (int): Current attempt number for retries.
-
-        Returns:
-            Optional[Dict[str, Any]]: Parsed response data or None if failed.
-        """
+        
+    async def _make_api_request(self, prompt: str, max_tokens: Optional[int], temperature: Optional[float], attempt: int) -> Optional[Dict[str, Any]]:
+        """Makes an API request with proper configuration."""
         try:
-            response = await asyncio.wait_for(
-                self._execute_api_call(prompt, max_tokens, temperature),
-                timeout=self.config.request_timeout
+            log_debug(f"Making API request for prompt: {prompt[:50]}...")
+            response = await asyncio.to_thread(
+                openai.Completion.create,
+                model=self.config.deployment_name,  # Use your Azure deployment name
+                prompt=prompt,
+                max_tokens=max_tokens or self.config.max_tokens,
+                temperature=temperature or self.config.temperature
             )
 
-            parsed_response = self.parser.parse_json_response(
-                response.choices[0].message.content
-            )
-
-            if not parsed_response:
-                log_error(f"Failed to parse response (attempt {attempt + 1})")
+            if response and 'choices' in response and len(response['choices']) > 0:
+                log_info("API response received successfully.")
+                return {
+                    "content": response['choices'][0]['text'],
+                    "usage": response.get('usage', {})
+                }
+            else:
+                log_error("API response is incomplete.")
                 return None
 
-            return {
-                "content": parsed_response,
-                "usage": response.usage.model_dump()
-            }
-
-        except asyncio.TimeoutError:
-            log_error(f"Request timeout (attempt {attempt + 1})")
+        except openai.error.OpenAIError as e:
+            log_error(f"OpenAIError occurred: {e}")
+            raise
+        except Exception as e:
+            log_error(f"Unexpected error during API request: {e}")
             return None
 
     async def _execute_api_call(

@@ -29,20 +29,15 @@ class AzureOpenAIConfig:
     request_timeout: int
 
     @classmethod
-    def from_env(cls, environment: Optional[str] = None) -> 'AzureOpenAIConfig':
+    def from_env(cls) -> 'AzureOpenAIConfig':
         """
         Create configuration from environment variables.
         
-        Args:
-            environment: Optional environment name (dev/prod)
-            
         Returns:
             AzureOpenAIConfig: Configuration instance
         """
-        endpoint_key = f"AZURE_OPENAI_ENDPOINT_{environment.upper()}" if environment else "AZURE_OPENAI_ENDPOINT"
-        
         return cls(
-            endpoint=os.getenv(endpoint_key, os.getenv("AZURE_OPENAI_ENDPOINT", "")),
+            endpoint=os.getenv("AZURE_OPENAI_ENDPOINT", ""),
             api_key=os.getenv("AZURE_OPENAI_KEY", ""),
             api_version=os.getenv("AZURE_OPENAI_VERSION", "2024-02-15-preview"),
             deployment_name=os.getenv("AZURE_OPENAI_DEPLOYMENT", ""),
@@ -73,4 +68,7 @@ class AzureOpenAIConfig:
         return not missing_fields
 
 # Create default configuration instance
-default_config = AzureOpenAIConfig.from_env()
+try:
+    default_config = AzureOpenAIConfig.from_env()
+except ValueError as e:
+    logging.error(f"Failed to create default configuration: {e}")

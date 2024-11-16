@@ -85,66 +85,66 @@ class ExtractionManager:
             log_error(f"Error processing {node_type} {node_name}: {str(e)}")
             return None
 
-	def extract_metadata(self, source_code: str) -> Dict[str, List[Dict[str, Any]]]:
-	    """
-	    Extract metadata from the provided source code.
-	
-	    This method parses the source code into an Abstract Syntax Tree (AST) and uses
-	    dedicated extractors to gather detailed metadata about classes and functions.
-	    The metadata includes information such as function names, parameters, return types,
-	    and complexity metrics.
-	
-	    Args:
-	        source_code (str): The Python source code to analyze.
-	
-	    Returns:
-	        Dict[str, List[Dict[str, Any]]]: A dictionary containing extracted metadata for classes and functions.
-	            - 'classes': A list of dictionaries, each containing metadata for a class.
-	            - 'functions': A list of dictionaries, each containing metadata for a function.
-	
-	    Raises:
-	        ExtractionError: If there is an error during extraction, such as invalid syntax or failure to parse.
-	    """
-	    try:
-	        log_debug("Starting metadata extraction")
-	
-	        # Validate and parse source code
-	        if not self.validate_source_code(source_code):
-	            raise ExtractionError("Source code validation failed")
-	
-	        # Initialize extractors
-	        self.source_code = source_code
-	        self.class_extractor = ClassExtractor(source_code)
-	        self.function_extractor = FunctionExtractor(source_code)
-	
-	        classes = []
-	        functions = []
-	
-	        # Process all nodes in the AST
-	        for node in ast.walk(self.tree):
-	            if isinstance(node, (ast.ClassDef, ast.FunctionDef)):
-	                try:
-	                    metadata = self.process_node(node)
-	                    if metadata:
-	                        if isinstance(node, ast.ClassDef):
-	                            classes.append(metadata)
-	                            log_debug(f"Extracted class: {node.name}")
-	                        else:
-	                            functions.append(metadata)
-	                            log_debug(f"Extracted function: {node.name}")
-	                except Exception as e:
-	                    log_error(f"Error extracting metadata for {type(node).__name__}: {str(e)}")
-	                    continue
-	
-	        log_info(f"Extraction complete. Found {len(classes)} classes and {len(functions)} functions")
-	        return {
-	            'classes': classes,
-	            'functions': functions
-	        }
-	
-	    except Exception as e:
-	        log_error(f"Failed to extract metadata: {str(e)}")
-	        raise ExtractionError(f"Failed to extract metadata: {str(e)}"))
+    def extract_metadata(self, source_code: str) -> Dict[str, List[Dict[str, Any]]]:
+        """
+        Extract metadata from the provided source code.
+
+        This method parses the source code into an Abstract Syntax Tree (AST) and uses
+        dedicated extractors to gather detailed metadata about classes and functions.
+        The metadata includes information such as function names, parameters, return types,
+        and complexity metrics.
+
+        Args:
+            source_code (str): The Python source code to analyze.
+
+        Returns:
+            Dict[str, List[Dict[str, Any]]]: A dictionary containing extracted metadata for classes and functions.
+                - 'classes': A list of dictionaries, each containing metadata for a class.
+                - 'functions': A list of dictionaries, each containing metadata for a function.
+
+        Raises:
+            ExtractionError: If there is an error during extraction, such as invalid syntax or failure to parse.
+        """
+        try:
+            log_debug("Starting metadata extraction")
+
+            # Validate and parse source code
+            if not self.validate_source_code(source_code):
+                raise ExtractionError("Source code validation failed")
+
+            # Initialize extractors
+            self.source_code = source_code
+            self.class_extractor = ClassExtractor(source_code)
+            self.function_extractor = FunctionExtractor(source_code)
+
+            classes = []
+            functions = []
+
+            # Process all nodes in the AST
+            for node in ast.walk(self.tree):
+                if isinstance(node, (ast.ClassDef, ast.FunctionDef)):
+                    try:
+                        metadata = self.process_node(node)
+                        if metadata:
+                            if isinstance(node, ast.ClassDef):
+                                classes.append(metadata)
+                                log_debug(f"Extracted class: {node.name}")
+                            else:
+                                functions.append(metadata)
+                                log_debug(f"Extracted function: {node.name}")
+                    except Exception as e:
+                        log_error(f"Error extracting metadata for {type(node).__name__}: {str(e)}")
+                        continue
+
+            log_info(f"Extraction complete. Found {len(classes)} classes and {len(functions)} functions")
+            return {
+                'classes': classes,
+                'functions': functions
+            }
+
+        except Exception as e:
+            log_error(f"Failed to extract metadata: {str(e)}")
+            raise ExtractionError(f"Failed to extract metadata: {str(e)}")
 
     def get_node_info(self, node: ast.AST) -> Dict[str, str]:
         """
