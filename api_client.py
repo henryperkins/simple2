@@ -15,8 +15,9 @@ from cache import Cache
 from config import AzureOpenAIConfig
 from token_management import TokenManager
 from api_interaction import APIInteraction
-from logger import log_info, log_error, log_debug, log_warning
+from logger import log_info, log_error
 from exceptions import TooManyRetriesError
+from utils import handle_exceptions  # Import the decorator
 
 class AzureOpenAIClient:
     """
@@ -38,10 +39,8 @@ class AzureOpenAIClient:
         Raises:
             ValueError: If the configuration is invalid
         """
-        log_debug("Initializing Azure OpenAI Client")
         self.config = config or AzureOpenAIConfig.from_env()
         if not self.config.validate():
-            log_error("Invalid Azure OpenAI configuration")
             raise ValueError("Invalid Azure OpenAI configuration")
 
         self.token_manager = TokenManager(
@@ -57,6 +56,7 @@ class AzureOpenAIClient:
 
         log_info("Azure OpenAI client initialized successfully")
 
+    @handle_exceptions(log_error)
     async def generate_docstring(
         self,
         func_name: str,
@@ -89,32 +89,19 @@ class AzureOpenAIClient:
         Raises:
             TooManyRetriesError: If maximum retry attempts are exceeded
         """
-        log_debug(f"Generating docstring for function: {func_name}")
-        try:
-            response = await self.api_interaction.get_docstring(
-                func_name=func_name,
-                params=params,
-                return_type=return_type,
-                complexity_score=complexity_score,
-                existing_docstring=existing_docstring,
-                decorators=decorators,
-                exceptions=exceptions,
-                max_tokens=max_tokens,
-                temperature=temperature
-            )
-            if response:
-                log_info(f"Successfully generated docstring for function: {func_name}")
-            else:
-                log_warning(f"Failed to generate docstring for function: {func_name}")
-            return response
+        return await self.api_interaction.get_docstring(
+            func_name=func_name,
+            params=params,
+            return_type=return_type,
+            complexity_score=complexity_score,
+            existing_docstring=existing_docstring,
+            decorators=decorators,
+            exceptions=exceptions,
+            max_tokens=max_tokens,
+            temperature=temperature
+        )
 
-        except TooManyRetriesError as e:
-            log_error(f"Max retries exceeded for {func_name}: {e}")
-            raise
-        except Exception as e:
-            log_error(f"Error generating docstring for {func_name}: {e}")
-            return None
-
+    @handle_exceptions(log_error)
     async def batch_generate_docstrings(
         self,
         functions: List[Dict[str, Any]],
@@ -130,11 +117,9 @@ class AzureOpenAIClient:
         Returns:
             List[Optional[Dict[str, Any]]]: List of generated docstrings and metadata
         """
-        log_debug(f"Starting batch generation of docstrings for {len(functions)} functions")
         results = []
         for i in range(0, len(functions), batch_size):
             batch = functions[i:i + batch_size]
-            log_debug(f"Processing batch of {len(batch)} functions")
             batch_results = await asyncio.gather(*[
                 self.generate_docstring(**func) for func in batch
             ], return_exceptions=True)
@@ -146,9 +131,9 @@ class AzureOpenAIClient:
                 else:
                     results.append(result)
         
-        log_info("Batch generation of docstrings completed")
         return results
 
+    @handle_exceptions(log_error)
     def invalidate_cache_for_function(self, func_name: str) -> bool:
         """
         Invalidate all cached responses for a specific function.
@@ -159,18 +144,10 @@ class AzureOpenAIClient:
         Returns:
             bool: True if cache invalidation was successful
         """
-        log_debug(f"Invalidating cache for function: {func_name}")
-        try:
-            invalidated_count = self.cache.invalidate_by_tags([f"func:{func_name}"])
-            if invalidated_count > 0:
-                log_info(f"Successfully invalidated cache for function: {func_name}")
-            else:
-                log_warning(f"No cache entries found to invalidate for function: {func_name}")
-            return invalidated_count > 0
-        except Exception as e:
-            log_error(f"Failed to invalidate cache for function {func_name}: {e}")
-            return False
+        invalidated_count = self.cache.invalidate_by_tags([f"func:{func_name}"])
+        return invalidated_count > 0
 
+    @handle_exceptions(log_error)
     def invalidate_cache_by_model(self, model: str) -> bool:
         """
         Invalidate all cached responses for a specific model.
@@ -181,17 +158,8 @@ class AzureOpenAIClient:
         Returns:
             bool: True if cache invalidation was successful
         """
-        log_debug(f"Invalidating cache for model: {model}")
-        try:
-            invalidated_count = self.cache.invalidate_by_tags([f"model:{model}"])
-            if invalidated_count > 0:
-                log_info(f"Successfully invalidated cache for model: {model}")
-            else:
-                log_warning(f"No cache entries found to invalidate for model: {model}")
-            return invalidated_count > 0
-        except Exception as e:
-            log_error(f"Failed to invalidate cache for model {model}: {e}")
-            return False
+        invalidated_count = self.cache.invalidate_by_tags([f"model:{model}"])
+        return invalidated_count > 0
 
     def get_cache_stats(self) -> Dict[str, Any]:
         """
@@ -200,13 +168,10 @@ class AzureOpenAIClient:
         Returns:
             Dict[str, Any]: Cache statistics and client information
         """
-        log_debug("Retrieving cache statistics")
-        stats = {
+        return {
             'cache_stats': self.cache.stats,
             'client_info': self.get_client_info()
         }
-        log_info(f"Cache statistics retrieved: {stats}")
-        return stats
 
     def get_client_info(self) -> Dict[str, Any]:
         """
@@ -215,16 +180,15 @@ class AzureOpenAIClient:
         Returns:
             Dict[str, Any]: Client configuration details
         """
-        client_info = {
+        return {
             "endpoint": self.config.endpoint,
             "model": self.config.deployment_name,
             "api_version": self.config.api_version,
             "max_retries": self.config.max_retries,
             "is_ready": self.api_interaction.is_ready
         }
-        log_debug(f"Client information: {client_info}")
-        return client_info
 
+    @handle_exceptions(log_error)
     async def validate_connection(self) -> bool:
         """
         Validate the connection to Azure OpenAI service.
@@ -235,18 +199,9 @@ class AzureOpenAIClient:
         Raises:
             ConnectionError: If connection validation fails
         """
-        log_debug("Validating connection to Azure OpenAI service")
-        try:
-            result = await self.api_interaction.validate_connection()
-            if result:
-                log_info("Connection to Azure OpenAI service validated successfully")
-            else:
-                log_warning("Connection validation failed")
-            return result
-        except Exception as e:
-            log_error(f"Connection validation failed: {e}")
-            raise ConnectionError(f"Connection validation failed: {e}")
+        return await self.api_interaction.validate_connection()
 
+    @handle_exceptions(log_error)
     async def health_check(self) -> bool:
         """
         Perform a health check to verify the service is operational.
@@ -254,40 +209,22 @@ class AzureOpenAIClient:
         Returns:
             bool: True if the service is healthy
         """
-        log_debug("Performing health check on Azure OpenAI service")
-        try:
-            result = await self.api_interaction.health_check()
-            if result:
-                log_info("Health check passed")
-            else:
-                log_warning("Health check failed")
-            return result
-        except Exception as e:
-            log_error(f"Health check failed: {e}")
-            return False
+        return await self.api_interaction.health_check()
 
     async def close(self):
         """Close the client and release any resources."""
-        log_debug("Closing Azure OpenAI client")
-        try:
-            await self.api_interaction.close()
-            log_info("Azure OpenAI client closed successfully")
-        except Exception as e:
-            log_error(f"Error closing Azure OpenAI client: {e}")
+        await self.api_interaction.close()
 
     async def __aenter__(self):
         """Async context manager entry."""
-        log_debug("Entering async context manager for Azure OpenAI client")
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Async context manager exit."""
-        log_debug("Exiting async context manager for Azure OpenAI client")
         await self.close()
 
 async def test_client():
     """Test the AzureOpenAIClient functionality."""
-    log_debug("Testing AzureOpenAIClient functionality")
     try:
         async with AzureOpenAIClient() as client:
             # Validate connection

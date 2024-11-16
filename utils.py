@@ -23,6 +23,28 @@ def generate_hash(content: str) -> str:
     hash_value = hashlib.md5(content.encode()).hexdigest()
     log_debug(f"Generated hash: {hash_value}")
     return hash_value
+def handle_exceptions(log_func):
+    """
+    Decorator to handle exceptions and log errors.
+
+    Args:
+        log_func (callable): The logging function to use for error messages.
+    """
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            try:
+                return func(*args, **kwargs)
+            except Exception as e:
+                # Attempt to retrieve the node from args or kwargs
+                node = kwargs.get('node', None)
+                if not node and args:
+                    node = next((arg for arg in args if isinstance(arg, ast.AST)), None)
+                
+                node_name = getattr(node, 'name', '<unknown>') if node else '<unknown>'
+                log_func(f"Error in {func.__name__} for node {node_name}: {e}")
+                return None  # Return a default value or handle as needed
+        return wrapper
+    return decorator
 
 async def load_json_file(filepath: str, max_retries: int = 3) -> Dict:
     """

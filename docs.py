@@ -21,6 +21,7 @@ from pathlib import Path
 from datetime import datetime
 from docstring_utils import parse_docstring, validate_docstring
 from logger import log_error
+from utils import handle_exceptions  # Import the decorator
 
 class DocStringManager:
     """
@@ -42,6 +43,7 @@ class DocStringManager:
         self.tree = ast.parse(source_code)
         logging.debug("DocStringManager initialized.")
 
+    @handle_exceptions(log_error)
     def insert_docstring(self, node: ast.FunctionDef, docstring: str) -> None:
         """
         Insert or update docstring for a function node.
@@ -56,7 +58,7 @@ class DocStringManager:
         logging.debug(f"Inserting docstring into function '{node.name}'.")
         node.body.insert(0, ast.Expr(value=ast.Str(s=docstring)))
 
-
+    @handle_exceptions(log_error)
     def update_source_code(self, documentation_entries: List[Dict]) -> str:
         """
         Update source code with new docstrings.
@@ -77,6 +79,7 @@ class DocStringManager:
         logging.info("Source code updated with new docstrings.")
         return updated_code
 
+    @handle_exceptions(log_error)
     def generate_markdown_documentation(
         self,
         documentation_entries: List[Dict],

@@ -12,7 +12,6 @@ import ast
 from typing import Dict, List, Any, Optional
 from extract.classes import ClassExtractor
 from extract.functions import FunctionExtractor
-from metrics import Metrics
 from logger import log_info, log_error, log_debug
 
 class ExtractionError(Exception):
@@ -117,25 +116,3 @@ class ExtractionManager:
         except Exception as e:
             log_error(f"Failed to extract metadata: {str(e)}")
             raise ExtractionError(f"Failed to extract metadata: {str(e)}")
-
-    def extract_docstring(self, node: ast.AST) -> Optional[str]:
-        """
-        Extract the docstring from an AST node.
-
-        Args:
-            node (ast.AST): The AST node to extract the docstring from.
-
-        Returns:
-            Optional[str]: The extracted docstring or None if no docstring is found.
-        """
-        try:
-            docstring = ast.get_docstring(node)
-            if docstring:
-                log_info(f"Docstring extracted from node: {type(node).__name__}")
-                return docstring
-            else:
-                log_debug(f"No docstring found in node: {type(node).__name__}")
-                return None
-        except Exception as e:
-            log_error(f"Error extracting docstring from node: {str(e)}")
-            return None
