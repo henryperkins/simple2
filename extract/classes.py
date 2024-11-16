@@ -33,22 +33,25 @@ class ClassExtractor(BaseExtractor):
             List[Dict[str, Any]]: A list of dictionaries containing class metadata.
         """
         if source_code:
+            log_debug("Initializing ClassExtractor with new source code.")
             self.parse_source(source_code)
 
         if not self.tree:
             log_error("No AST available for extraction")
             return []
 
+        log_debug("Starting extraction of class definitions.")
         classes = []
         for node in ast.walk(self.tree):
             if isinstance(node, ast.ClassDef):
                 try:
+                    log_debug(f"Found class definition: {node.name} at line {node.lineno}")
                     class_info = self.extract_details(node)
                     if class_info:
                         classes.append(class_info)
                         log_info(f"Extracted class '{node.name}' with metadata")
                 except Exception as e:
-                    log_error(f"Error extracting class '{getattr(node, 'name', '<unknown>')}': {e}")
+                    log_error(f"Error extracting class '{getattr(node, 'name', '<unknown>')}' at line {node.lineno}: {e}")
                     continue
 
         log_debug(f"Total classes extracted: {len(classes)}")
@@ -94,6 +97,7 @@ class ClassExtractor(BaseExtractor):
         Returns:
             dict: A dictionary containing method details.
         """
+        log_debug(f"Extracting method details for method: {node.name}")
         return {
             'name': node.name,
             'parameters': self.extract_parameters(node),
@@ -124,6 +128,7 @@ class ClassExtractor(BaseExtractor):
                 'default_value': self._get_default_value(arg, node)
             }
             parameters.append(param_info)
+            log_debug(f"Extracted parameter: {param_info}")
         return parameters
 
     def extract_class_attributes(self, class_node: ast.ClassDef) -> List[Dict[str, Any]]:
@@ -147,6 +152,7 @@ class ClassExtractor(BaseExtractor):
                             'lineno': node.lineno
                         }
                         attributes.append(attr_info)
+                        log_debug(f"Extracted attribute: {attr_info}")
         return attributes
 
     def _infer_type(self, value_node: ast.AST) -> str:
@@ -160,17 +166,20 @@ class ClassExtractor(BaseExtractor):
             str: The inferred type as a string.
         """
         if isinstance(value_node, ast.Constant):
-            return type(value_node.value).__name__
+            inferred_type = type(value_node.value).__name__
         elif isinstance(value_node, ast.List):
-            return "List"
+            inferred_type = "List"
         elif isinstance(value_node, ast.Dict):
-            return "Dict"
+            inferred_type = "Dict"
         elif isinstance(value_node, ast.Set):
-            return "Set"
+            inferred_type = "Set"
         elif isinstance(value_node, ast.Tuple):
-            return "Tuple"
+            inferred_type = "Tuple"
         else:
-            return "Unknown"
+            inferred_type = "Unknown"
+        
+        log_debug(f"Inferred type for node: {inferred_type}")
+        return inferred_type
 
     def extract_return_type(self, node: ast.FunctionDef) -> str:
         """
@@ -182,7 +191,9 @@ class ClassExtractor(BaseExtractor):
         Returns:
             str: The return type annotation.
         """
-        return ast.unparse(node.returns) if node.returns else "Any"
+        return_type = ast.unparse(node.returns) if node.returns else "Any"
+        log_debug(f"Extracted return type for method {node.name}: {return_type}")
+        return return_type
 
     def get_body_summary(self, node: ast.FunctionDef) -> str:
         """
@@ -194,4 +205,6 @@ class ClassExtractor(BaseExtractor):
         Returns:
             str: A summary of the function body.
         """
-        return " ".join(ast.unparse(stmt) for stmt in node.body[:3]) + "..."
+        body_summary = " ".join(ast.unparse(stmt) for stmt in node.body[:3]) + "..."
+        log_debug(f"Generated body summary for method {node.name}: {body_summary}")
+        return body_summary

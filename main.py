@@ -10,7 +10,7 @@ Author: Development Team
 """
 
 import argparse
-import asynciogit
+import asyncio
 import os
 import shutil
 import tempfile
@@ -70,8 +70,11 @@ async def initialize_client(api_key: str, endpoint: str) -> AzureOpenAIClient:
     Returns:
         AzureOpenAIClient: Configured client instance
     """
+    log_debug("Initializing Azure OpenAI client")
     config = AzureOpenAIConfig.from_env()
-    return AzureOpenAIClient(config)
+    client = AzureOpenAIClient(config)
+    log_info("Azure OpenAI client initialized successfully")
+    return client
 
 def load_source_file(file_path: str) -> str:
     """
@@ -133,7 +136,7 @@ async def process_file(file_path: str, args: argparse.Namespace, client: AzureOp
         FileNotFoundError: If the file does not exist
         IOError: If there is an error reading or writing the file
     """
-    log_debug(f"Processing file: {file_path}")
+    log_info(f"Starting processing for file: {file_path}")
     start_time = time.time()
     interaction_handler = InteractionHandler(client=client)
     failed_items = []
@@ -153,6 +156,7 @@ async def process_file(file_path: str, args: argparse.Namespace, client: AzureOp
             try:
                 issues = analyze_code_element_docstring(class_data['node'])
                 if issues:
+                    log_debug(f"Generating docstring for class: {class_data['name']}")
                     docstring = await client.get_docstring(
                         func_name=class_data['name'],
                         params=[(method['name'], 'Unknown') for method in class_data['methods']],
@@ -177,6 +181,7 @@ async def process_file(file_path: str, args: argparse.Namespace, client: AzureOp
             try:
                 issues = analyze_code_element_docstring(function_data['node'])
                 if issues:
+                    log_debug(f"Generating docstring for function: {function_data['name']}")
                     docstring = await client.get_docstring(
                         func_name=function_data['name'],
                         params=function_data['args'],
@@ -238,6 +243,7 @@ async def run_workflow(args: argparse.Namespace) -> None:
     temp_dir = None
 
     try:
+        log_info("Starting workflow execution")
         # Initialize client with timeout
         client = await asyncio.wait_for(initialize_client(args.api_key, args.endpoint), timeout=30)
         
@@ -299,6 +305,8 @@ async def run_workflow(args: argparse.Namespace) -> None:
     except Exception as e:
         log_error(f"Workflow error: {str(e)}")
         raise
+    finally:
+        log_info("Workflow execution completed")
         
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='DocStrings Workflow System with Azure OpenAI and Redis Caching')

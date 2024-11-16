@@ -43,46 +43,30 @@ class ExtractionManager:
 
         Returns:
             bool: True if the source code is valid, False otherwise.
-
-        Raises:
-            ValueError: If the source code is empty or invalid.
         """
-        if not source_code or not isinstance(source_code, str):
-            raise ValueError("Source code must be a non-empty string.")
-        
         try:
             self.tree = ast.parse(source_code)
             return True
         except SyntaxError as e:
-            raise ValueError(f"Invalid Python syntax: {str(e)}")
-        except Exception as e:
-            raise ValueError(f"Source code validation failed: {str(e)}")
+            log_error(f"Syntax error in source code: {e}")
+            return False
 
     def process_node(self, node: ast.AST) -> Optional[Dict[str, Any]]:
         """
-        Process an individual AST node to extract metadata.
+        Process an AST node to extract metadata.
 
         Args:
             node (ast.AST): The AST node to process.
 
         Returns:
-            Optional[Dict[str, Any]]: Extracted metadata for the node, or None if processing fails.
+            Optional[Dict[str, Any]]: Extracted metadata or None if processing fails.
         """
-        try:
-            if isinstance(node, ast.ClassDef):
-                return self.class_extractor.extract_details(node)
-            elif isinstance(node, ast.FunctionDef):
-                function_details = self.function_extractor.extract_details(node)
-                # Calculate metrics for the function
-                metrics = Metrics()
-                function_details['complexity'] = metrics.calculate_complexity(node)
-                function_details['maintainability_index'] = metrics.calculate_maintainability_index(node)
-                return function_details
-            return None
-        except Exception as e:
-            node_name = getattr(node, 'name', '<unknown>')
-            node_type = type(node).__name__
-            log_error(f"Error processing {node_type} {node_name}: {str(e)}")
+        if isinstance(node, ast.ClassDef):
+            return self.class_extractor.extract_details(node)
+        elif isinstance(node, ast.FunctionDef):
+            return self.function_extractor.extract_details(node)
+        else:
+            log_error(f"Unsupported node type: {type(node).__name__}")
             return None
 
     def extract_metadata(self, source_code: str) -> Dict[str, List[Dict[str, Any]]]:
@@ -107,20 +91,13 @@ class ExtractionManager:
         """
         try:
             log_debug("Starting metadata extraction")
-
-            # Validate and parse source code
             if not self.validate_source_code(source_code):
                 raise ExtractionError("Source code validation failed")
-
-            # Initialize extractors
             self.source_code = source_code
             self.class_extractor = ClassExtractor(source_code)
             self.function_extractor = FunctionExtractor(source_code)
-
             classes = []
             functions = []
-
-            # Process all nodes in the AST
             for node in ast.walk(self.tree):
                 if isinstance(node, (ast.ClassDef, ast.FunctionDef)):
                     try:
@@ -135,45 +112,30 @@ class ExtractionManager:
                     except Exception as e:
                         log_error(f"Error extracting metadata for {type(node).__name__}: {str(e)}")
                         continue
-
             log_info(f"Extraction complete. Found {len(classes)} classes and {len(functions)} functions")
-            return {
-                'classes': classes,
-                'functions': functions
-            }
-
+            return {'classes': classes, 'functions': functions}
         except Exception as e:
             log_error(f"Failed to extract metadata: {str(e)}")
             raise ExtractionError(f"Failed to extract metadata: {str(e)}")
 
-    def get_node_info(self, node: ast.AST) -> Dict[str, str]:
+    def extract_docstring(self, node: ast.AST) -> Optional[str]:
         """
-        Get basic information about an AST node.
+        Extract the docstring from an AST node.
 
         Args:
-            node (ast.AST): The AST node to get information about.
+            node (ast.AST): The AST node to extract the docstring from.
 
         Returns:
-            Dict[str, str]: Basic information about the node, including its type, name, and line number.
+            Optional[str]: The extracted docstring or None if no docstring is found.
         """
-        return {
-            'type': type(node).__name__,
-            'name': getattr(node, 'name', '<unknown>'),
-            'line': getattr(node, 'lineno', '<unknown>')
-        }
-
-    def is_valid_node(self, node: ast.AST) -> bool:
-        """
-        Check if a node is valid for processing.
-
-        Args:
-            node (ast.AST): The node to validate.
-
-        Returns:
-            bool: True if the node is valid, False otherwise.
-        """
-        if not isinstance(node, (ast.ClassDef, ast.FunctionDef)):
-            return False
-            
-        required_attrs = ['name', 'body', 'lineno']
-        return all(hasattr(node, attr) for attr in required_attrs)
+        try:
+            docstring = ast.get_docstring(node)
+            if docstring:
+                log_info(f"Docstring extracted from node: {type(node).__name__}")
+                return docstring
+            else:
+                log_debug(f"No docstring found in node: {type(node).__name__}")
+                return None
+        except Exception as e:
+            log_error(f"Error extracting docstring from node: {str(e)}")
+            return None

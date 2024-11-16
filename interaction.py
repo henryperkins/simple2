@@ -53,8 +53,10 @@ class InteractionHandler:
             cache_config (Optional[Dict]): Configuration for the cache.
             batch_size (int): Number of functions to process concurrently.
         """
+        log_debug("Initializing InteractionHandler")
         if client is None:
             if not endpoint or not api_key:
+                log_error("Azure OpenAI endpoint and API key must be provided if client is not supplied.")
                 raise ValueError("Azure OpenAI endpoint and API key must be provided if client is not supplied.")
             self.client = AzureOpenAIClient(endpoint=endpoint, api_key=api_key)
         else:
@@ -92,12 +94,14 @@ class InteractionHandler:
             for i in range(0, len(functions), self.batch_size):
                 batch = functions[i: i + self.batch_size]
                 batch_tasks = [self.process_function(source_code, func_info) for func_info in batch]
+                log_debug(f"Processing batch of {len(batch)} functions")
                 batch_results = await asyncio.gather(*batch_tasks)
                 function_results.extend(batch_results)
 
             # Process classes
             class_results = []
             for class_info in classes:
+                log_debug(f"Processing class: {class_info['name']}")
                 class_result = await self.process_class(source_code, class_info)
                 if class_result:
                     class_results.append(class_result)
@@ -164,6 +168,7 @@ class InteractionHandler:
         async with self.semaphore:
             func_name = function_info.get('name', 'unknown')
             start_time = time.time()
+            log_debug(f"Processing function: {func_name}")
 
             try:
                 # Check cache first
@@ -193,6 +198,7 @@ class InteractionHandler:
                 max_attempts = 3
                 for attempt in range(max_attempts):
                     try:
+                        log_debug(f"Attempting to generate docstring for {func_name}, attempt {attempt + 1}")
                         response = await self.client.get_docstring(
                             func_name=function_info['name'],
                             params=function_info['args'],
@@ -284,6 +290,7 @@ class InteractionHandler:
         """
         class_name = class_info.get('name', 'unknown')
         start_time = time.time()
+        log_debug(f"Processing class: {class_name}")
 
         try:
             # Generate docstring for class
@@ -298,7 +305,9 @@ class InteractionHandler:
             )
 
             if response and response.get('content'):
+                log_info(f"Successfully generated docstring for class: {class_name}")
                 return response['content'].get('docstring'), response['content']
+            log_warning(f"Failed to generate docstring for class: {class_name}")
             return None, None
 
         except Exception as e:
@@ -322,4 +331,6 @@ class InteractionHandler:
             str: The generated cache key.
         """
         func_signature = f"{function_node.name}({', '.join(arg.arg for arg in function_node.args.args)})"
-        return hashlib.md5(func_signature.encode()).hexdigest()
+        cache_key = hashlib.md5(func_signature.encode()).hexdigest()
+        log_debug(f"Generated cache key for function {function_node.name}: {cache_key}")
+        return cache_key

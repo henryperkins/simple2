@@ -13,7 +13,7 @@ import time
 import openai
 from typing import List, Tuple, Optional, Dict, Any
 from openai import OpenAI, APIError, AzureOpenAI
-from logger import log_info, log_error, log_debug
+from logger import log_info, log_error, log_debug, log_warning
 from token_management import TokenManager
 from cache import Cache
 from response_parser import ResponseParser
@@ -26,6 +26,7 @@ class APIInteraction:
 
     def __init__(self, config: AzureOpenAIConfig, token_manager: TokenManager, cache: Cache):
         """Initializes the APIInteraction with necessary components."""
+        log_debug("Initializing APIInteraction with Azure OpenAI configuration")
         openai.api_key = config.api_key
         openai.api_base = config.endpoint  # Azure-specific endpoint
         openai.api_version = config.api_version
@@ -34,7 +35,7 @@ class APIInteraction:
         self.parser = ResponseParser()
         self.config = config
         self.current_retry = 0
-        log_info("APIInteraction initialized with Azure OpenAI configuration.")
+        log_info("APIInteraction initialized successfully.")
 
     async def get_docstring(
         self,
@@ -49,6 +50,7 @@ class APIInteraction:
         temperature: Optional[float] = None
     ) -> Optional[Dict[str, Any]]:
         """Generates a docstring for a function using Azure OpenAI."""
+        log_debug(f"Generating docstring for function: {func_name}")
         cache_key = f"{func_name}:{hash(str(params))}:{hash(return_type)}"
         
         try:
@@ -63,6 +65,7 @@ class APIInteraction:
                 func_name, params, return_type, complexity_score,
                 existing_docstring, decorators, exceptions
             )
+            log_debug(f"Created prompt for function {func_name}: {prompt[:50]}...")
 
             # Validate token limits
             is_valid, metrics, message = self.token_manager.validate_request(
@@ -78,10 +81,12 @@ class APIInteraction:
                 prompt,
                 max_tokens=max_tokens or self.config.max_tokens
             )
+            log_debug(f"Optimized prompt for function {func_name}: {optimized_prompt[:50]}...")
 
             # Make API request with retry logic
             for attempt in range(self.config.max_retries):
                 try:
+                    log_debug(f"Attempting API request for function {func_name}, attempt {attempt + 1}")
                     response = await self._make_api_request(
                         optimized_prompt,
                         max_tokens,
@@ -99,16 +104,18 @@ class APIInteraction:
                                 f"model:{self.config.deployment_name}"
                             ]
                         )
+                        log_info(f"Successfully generated and cached docstring for function: {func_name}")
                         return response
 
                 except APIError as e:
                     if not await self._handle_api_error(e, attempt):
                         break
                 except Exception as e:
-                    log_error(f"Unexpected error: {e}")
+                    log_error(f"Unexpected error during API request for {func_name}: {e}")
                     if attempt == self.config.max_retries - 1:
                         raise
 
+            log_warning(f"Failed to generate docstring for function {func_name} after {self.config.max_retries} attempts")
             return None
 
         except Exception as e:
@@ -118,7 +125,7 @@ class APIInteraction:
     async def _make_api_request(self, prompt: str, max_tokens: Optional[int], temperature: Optional[float], attempt: int) -> Optional[Dict[str, Any]]:
         """Makes an API request with proper configuration."""
         try:
-            log_debug(f"Making API request for prompt: {prompt[:50]}...")
+            log_debug(f"Making API request with prompt: {prompt[:50]}...")
             response = await asyncio.to_thread(
                 openai.Completion.create,
                 model=self.config.deployment_name,  # Use your Azure deployment name
@@ -134,60 +141,15 @@ class APIInteraction:
                     "usage": response.get('usage', {})
                 }
             else:
-                log_error("API response is incomplete.")
+                log_warning("API response is incomplete.")
                 return None
 
         except openai.error.OpenAIError as e:
-            log_error(f"OpenAIError occurred: {e}")
+            log_error(f"OpenAIError occurred during API request: {e}")
             raise
         except Exception as e:
             log_error(f"Unexpected error during API request: {e}")
             return None
-
-    async def _execute_api_call(
-        self,
-        prompt: str,
-        max_tokens: Optional[int],
-        temperature: Optional[float]
-    ):
-        """Executes the actual API call.
-
-        Args:
-            prompt (str): The prompt for the API request.
-            max_tokens (Optional[int]): Maximum tokens for response.
-            temperature (Optional[float]): Sampling temperature.
-
-        Returns:
-            The API response object.
-        """
-        return self.client.chat.completions.create(
-            model=self.config.deployment_name,
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are a documentation expert. Generate clear, "
-                              "comprehensive docstrings following Google style guide."
-                },
-                {"role": "user", "content": prompt}
-            ],
-            max_tokens=max_tokens or self.config.max_tokens,
-            temperature=temperature or self.config.temperature,
-            functions=[{
-                "name": "generate_docstring",
-                "description": "Generate a structured docstring",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "docstring": {"type": "string"},
-                        "summary": {"type": "string"},
-                        "complexity_score": {"type": "integer"},
-                        "changelog": {"type": "string"},
-                    },
-                    "required": ["docstring", "summary"],
-                },
-            }],
-            function_call={"name": "generate_docstring"}
-        )
 
     async def _handle_api_error(self, error: APIError, attempt: int) -> bool:
         """Handles API errors and determines if retry is appropriate.
@@ -199,6 +161,7 @@ class APIInteraction:
         Returns:
             bool: True if should retry, False otherwise.
         """
+        log_warning(f"Handling API error on attempt {attempt + 1}: {error}")
         if error.status_code == 429:  # Rate limit error
             retry_after = int(error.headers.get('retry-after', self.config.retry_delay ** attempt))
             log_info(f"Rate limit hit. Waiting {retry_after}s before retry.")
@@ -257,6 +220,7 @@ class APIInteraction:
         Exceptions: {exceptions_info}
         Existing docstring: {existing_docstring}
         """
+        log_debug(f"Created prompt for function {func_name}: {prompt[:50]}...")
         return prompt.strip()
 
     async def validate_connection(self) -> bool:
@@ -268,6 +232,7 @@ class APIInteraction:
         Raises:
             ConnectionError: If connection validation fails.
         """
+        log_debug("Validating connection to Azure OpenAI service")
         try:
             response = await asyncio.wait_for(
                 self._execute_api_call(
@@ -289,6 +254,7 @@ class APIInteraction:
         Returns:
             bool: True if the service is healthy, False otherwise.
         """
+        log_debug("Performing health check on Azure OpenAI service")
         try:
             response = await self.get_docstring(
                 func_name="test_function",
@@ -297,7 +263,12 @@ class APIInteraction:
                 complexity_score=1,
                 existing_docstring=""
             )
-            return response is not None
+            if response:
+                log_info("Health check passed")
+                return True
+            else:
+                log_warning("Health check failed")
+                return False
         except Exception as e:
             log_error(f"Health check failed: {e}")
             return False
@@ -338,6 +309,7 @@ class APIInteraction:
 
     async def close(self):
         """Closes the API client and releases any resources."""
+        log_debug("Closing API client")
         try:
             # Close any open connections or resources
             if hasattr(self.client, 'close'):
@@ -348,12 +320,12 @@ class APIInteraction:
 
     async def __aenter__(self):
         """Async context manager entry."""
+        log_debug("Entering async context manager for API client")
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Async context manager exit."""
-        if exc_type:
-            log_error(f"Error in context manager: {exc_val}")
+        log_debug("Exiting async context manager for API client")
         await self.close()
 
     @property
@@ -363,7 +335,9 @@ class APIInteraction:
         Returns:
             bool: True if the client is properly configured.
         """
-        return bool(self.client)
+        is_ready = bool(self.client)
+        log_debug(f"Client readiness status: {is_ready}")
+        return is_ready
 
     def get_client_info(self) -> Dict[str, Any]:
         """Gets information about the API client configuration.
@@ -371,7 +345,7 @@ class APIInteraction:
         Returns:
             Dict[str, Any]: Client configuration details.
         """
-        return {
+        client_info = {
             "endpoint": self.config.endpoint,
             "model": self.config.deployment_name,
             "api_version": self.config.api_version,
@@ -379,3 +353,5 @@ class APIInteraction:
             "timeout": self.config.request_timeout,
             "is_ready": self.is_ready
         }
+        log_debug(f"Client configuration details: {client_info}")
+        return client_info

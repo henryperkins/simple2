@@ -41,6 +41,7 @@ class FunctionExtractor(BaseExtractor):
         for node in ast.walk(self.tree):
             if isinstance(node, ast.FunctionDef):
                 try:
+                    log_debug(f"Found function definition: {node.name} at line {node.lineno}")
                     function_info = self.extract_details(node)
                     functions.append(function_info)
                     log_info(f"Extracted function '{node.name}' with metadata.")
@@ -61,6 +62,7 @@ class FunctionExtractor(BaseExtractor):
             dict: A dictionary containing function details.
         """
         if not isinstance(node, ast.FunctionDef):
+            log_error(f"Expected FunctionDef node, got {type(node).__name__}")
             raise ValueError(f"Expected FunctionDef node, got {type(node).__name__}")
 
         log_debug(f"Extracting details for function: {node.name}")
@@ -96,6 +98,7 @@ class FunctionExtractor(BaseExtractor):
             param_name = arg.arg
             param_type = self._get_type_annotation(arg)
             parameters.append((param_name, param_type))
+            log_debug(f"Extracted parameter: {param_name} with type: {param_type}")
         return parameters
 
     def extract_return_type(self, node: ast.FunctionDef) -> str:
@@ -108,7 +111,9 @@ class FunctionExtractor(BaseExtractor):
         Returns:
             str: The return type annotation.
         """
-        return ast.unparse(node.returns) if node.returns else "Any"
+        return_type = ast.unparse(node.returns) if node.returns else "Any"
+        log_debug(f"Extracted return type for function {node.name}: {return_type}")
+        return return_type
 
     def get_body_summary(self, node: ast.FunctionDef) -> str:
         """
@@ -120,4 +125,6 @@ class FunctionExtractor(BaseExtractor):
         Returns:
             str: A summary of the function body.
         """
-        return " ".join(ast.unparse(stmt) for stmt in node.body[:3]) + "..."
+        body_summary = " ".join(ast.unparse(stmt) for stmt in node.body[:3]) + "..."
+        log_debug(f"Generated body summary for function {node.name}: {body_summary}")
+        return body_summary
