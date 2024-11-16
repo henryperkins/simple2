@@ -4,18 +4,17 @@ Enhanced Cache Management Module
 This module provides advanced caching capabilities for docstrings and API responses,
 with Redis-based distributed caching and in-memory fallback.
 
-Version: 1.2.0
+Version: 1.3.0
 Author: Development Team
 """
 
 import json
 import time
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Union
 import redis
 from dataclasses import dataclass
 import asyncio
-from logger import log_info, log_error
-from monitoring import SystemMonitor
+from logger import log_info, log_error, log_debug
 
 @dataclass
 class CacheStats:
@@ -28,7 +27,19 @@ class CacheStats:
     avg_response_time: float = 0.0
 
 class Cache:
-    """Enhanced cache management with Redis and in-memory fallback."""
+    """Enhanced cache management with Redis and in-memory fallback.
+
+    Provides distributed caching with Redis and falls back to in-memory
+    caching when Redis is unavailable.
+
+    Attributes:
+        default_ttl (int): Default time-to-live for cache entries in seconds.
+        max_retries (int): Maximum number of Redis connection attempts.
+        stats (CacheStats): Statistics for cache operations.
+        redis_available (bool): Indicates if Redis is available for caching.
+        redis_client (redis.Redis): Redis client instance.
+        memory_cache (LRUCache): In-memory LRU cache instance.
+    """
 
     def __init__(
         self,
@@ -38,16 +49,25 @@ class Cache:
         password: Optional[str] = None,
         default_ttl: int = 86400,
         max_retries: int = 3,
-        max_memory_items: int = 1000,
-        monitor: Optional[SystemMonitor] = None
+        max_memory_items: int = 1000
     ):
-        """Initialize the enhanced cache system."""
+        """Initializes the cache system.
+
+        Args:
+            host (str): Redis host.
+            port (int): Redis port.
+            db (int): Redis database number.
+            password (Optional[str]): Redis password.
+            default_ttl (int): Default time-to-live for cache entries in seconds.
+            max_retries (int): Maximum number of Redis connection attempts.
+            max_memory_items (int): Maximum number of items in memory cache.
+        """
         self.default_ttl = default_ttl
         self.max_retries = max_retries
-        self.monitor = monitor or SystemMonitor()
         self.stats = CacheStats()
         
-        # Initialize Redis
+        # Initialize Redis connection
+        self.redis_available = False
         for attempt in range(max_retries):
             try:
                 self.redis_client = redis.Redis(
@@ -67,7 +87,6 @@ class Cache:
             except redis.RedisError as e:
                 log_error(f"Redis connection error (attempt {attempt + 1}): {e}")
                 if attempt == max_retries - 1:
-                    self.redis_available = False
                     log_error("Falling back to in-memory cache only")
                 time.sleep(2 ** attempt)
 
@@ -76,23 +95,29 @@ class Cache:
 
     async def get_cached_docstring(
         self,
-        function_id: str,
+        key: str,
         return_metadata: bool = True
     ) -> Optional[Dict[str, Any]]:
-        """Enhanced docstring retrieval with fallback."""
-        cache_key = self._generate_cache_key(function_id)
-        start_time = time.time()
+        """Retrieves a cached docstring.
 
+        Args:
+            key (str): Cache key.
+            return_metadata (bool): Whether to return metadata with the docstring.
+
+        Returns:
+            Optional[Dict[str, Any]]: Cached data if found, otherwise None.
+        """
+        start_time = time.time()
         try:
             # Try Redis first
             if self.redis_available:
-                value = await self._get_from_redis(cache_key)
+                value = await self._get_from_redis(key)
                 if value:
                     self._update_stats(hit=True, response_time=time.time() - start_time)
                     return value if return_metadata else {'docstring': value['docstring']}
 
             # Try memory cache
-            value = await self.memory_cache.get(cache_key)
+            value = await self.memory_cache.get(key)
             if value:
                 self._update_stats(hit=True, response_time=time.time() - start_time)
                 return value if return_metadata else {'docstring': value['docstring']}
@@ -107,19 +132,26 @@ class Cache:
 
     async def save_docstring(
         self,
-        function_id: str,
-        docstring_data: Dict[str, Any],
+        key: str,
+        data: Dict[str, Any],
         ttl: Optional[int] = None,
         tags: Optional[List[str]] = None
     ) -> bool:
-        """Enhanced docstring saving with tags support."""
-        cache_key = self._generate_cache_key(function_id)
-        ttl = ttl or self.default_ttl
+        """Saves data to the cache.
 
+        Args:
+            key (str): Cache key.
+            data (Dict[str, Any]): Data to cache.
+            ttl (Optional[int]): Time-to-live in seconds.
+            tags (Optional[List[str]]): List of tags for the cache entry.
+
+        Returns:
+            bool: True if save was successful, otherwise False.
+        """
+        ttl = ttl or self.default_ttl
         try:
-            # Add metadata
             cache_entry = {
-                **docstring_data,
+                **data,
                 'cache_metadata': {
                     'timestamp': time.time(),
                     'ttl': ttl,
@@ -129,12 +161,12 @@ class Cache:
 
             # Try Redis first
             if self.redis_available:
-                success = await self._set_in_redis(cache_key, cache_entry, ttl)
+                success = await self._set_in_redis(key, cache_entry, ttl)
                 if success:
                     return True
 
             # Fallback to memory cache
-            await self.memory_cache.set(cache_key, cache_entry, ttl)
+            await self.memory_cache.set(key, cache_entry, ttl)
             return True
 
         except Exception as e:
@@ -142,7 +174,14 @@ class Cache:
             return False
 
     async def invalidate_by_tags(self, tags: List[str]) -> int:
-        """Invalidate cache entries by tags."""
+        """Invalidates cache entries by tags.
+
+        Args:
+            tags (List[str]): List of tags to match.
+
+        Returns:
+            int: Number of entries invalidated.
+        """
         count = 0
         try:
             if self.redis_available:
@@ -153,45 +192,45 @@ class Cache:
             log_error(f"Tag-based invalidation error: {e}")
             return count
 
-    def _update_stats(self, hit: bool = False, error: bool = False, response_time: float = 0.0):
-        """Update cache statistics."""
-        self.stats.total_requests += 1
-        if hit:
-            self.stats.hits += 1
-        else:
-            self.stats.misses += 1
-        if error:
-            self.stats.errors += 1
-        
-        self.stats.avg_response_time = (
-            (self.stats.avg_response_time * (self.stats.total_requests - 1) + response_time)
-            / self.stats.total_requests
-        )
+    async def _get_from_redis(self, key: str) -> Optional[Dict[str, Any]]:
+        """Gets value from Redis.
 
-    def _generate_cache_key(self, function_id: str) -> str:
-        """Generate a unique cache key for a function."""
-        return f"docstring:v1:{function_id}"
+        Args:
+            key (str): Cache key.
 
-    async def _get_from_redis(self, key: str) -> Optional[Any]:
-        """Get value from Redis with error handling."""
+        Returns:
+            Optional[Dict[str, Any]]: Cached value if found, otherwise None.
+        """
         try:
             value = self.redis_client.get(key)
-            if value:
-                return json.loads(value)
-            return None
+            return json.loads(value) if value else None
         except Exception as e:
             log_error(f"Redis get error: {e}")
             return None
 
-    async def _set_in_redis(self, key: str, value: Any, ttl: int) -> bool:
-        """Set value in Redis with error handling."""
+    async def _set_in_redis(
+        self,
+        key: str,
+        value: Dict[str, Any],
+        ttl: int
+    ) -> bool:
+        """Sets value in Redis with tags.
+
+        Args:
+            key (str): Cache key.
+            value (Dict[str, Any]): Value to cache.
+            ttl (int): Time-to-live in seconds.
+
+        Returns:
+            bool: True if set was successful, otherwise False.
+        """
         try:
-            serialized_value = json.dumps(value)
-            self.redis_client.setex(key, ttl, serialized_value)
+            serialized = json.dumps(value)
+            self.redis_client.setex(key, ttl, serialized)
             
-            # Store tags for efficient tag-based invalidation
-            if value.get('tags'):
-                for tag in value['tags']:
+            # Store tags
+            if value.get('cache_metadata', {}).get('tags'):
+                for tag in value['cache_metadata']['tags']:
                     tag_key = f"tag:{tag}"
                     self.redis_client.sadd(tag_key, key)
                     self.redis_client.expire(tag_key, ttl)
@@ -202,7 +241,14 @@ class Cache:
             return False
 
     async def _invalidate_redis_by_tags(self, tags: List[str]) -> int:
-        """Invalidate Redis entries by tags."""
+        """Invalidates Redis entries by tags.
+
+        Args:
+            tags (List[str]): List of tags to match.
+
+        Returns:
+            int: Number of entries invalidated.
+        """
         count = 0
         try:
             for tag in tags:
@@ -219,12 +265,19 @@ class Cache:
             return count
 
     async def _delete_from_redis(self, key: str) -> bool:
-        """Delete value from Redis with error handling."""
+        """Deletes value and associated tags from Redis.
+
+        Args:
+            key (str): Key to delete.
+
+        Returns:
+            bool: True if deletion was successful, otherwise False.
+        """
         try:
             # Get tags before deletion
             value = await self._get_from_redis(key)
-            if value and value.get('tags'):
-                for tag in value['tags']:
+            if value and value.get('cache_metadata', {}).get('tags'):
+                for tag in value['cache_metadata']['tags']:
                     self.redis_client.srem(f"tag:{tag}", key)
             
             self.redis_client.delete(key)
@@ -233,23 +286,94 @@ class Cache:
             log_error(f"Redis delete error: {e}")
             return False
 
-class LRUCache:
-    """Thread-safe LRU cache implementation for in-memory caching."""
-
-    def __init__(self, max_size: int = 1000):
-        """
-        Initialize LRU cache.
+    def _update_stats(
+        self,
+        hit: bool = False,
+        error: bool = False,
+        response_time: float = 0.0
+    ):
+        """Updates cache statistics.
 
         Args:
-            max_size: Maximum number of items to store
+            hit (bool): Whether the operation was a cache hit.
+            error (bool): Whether an error occurred.
+            response_time (float): Time taken for the operation.
+        """
+        self.stats.total_requests += 1
+        if hit:
+            self.stats.hits += 1
+        else:
+            self.stats.misses += 1
+        if error:
+            self.stats.errors += 1
+        
+        self.stats.avg_response_time = (
+            (self.stats.avg_response_time * (self.stats.total_requests - 1) + response_time)
+            / self.stats.total_requests
+        )
+
+    async def clear(self) -> bool:
+        """Clears all cache entries.
+
+        Returns:
+            bool: True if clear was successful, otherwise False.
+        """
+        try:
+            if self.redis_available:
+                self.redis_client.flushdb()
+            await self.memory_cache.clear()
+            self.stats = CacheStats()
+            return True
+        except Exception as e:
+            log_error(f"Cache clear error: {e}")
+            return False
+
+    def get_stats(self) -> Dict[str, Union[int, float]]:
+        """Gets cache statistics.
+
+        Returns:
+            Dict[str, Union[int, float]]: Dictionary of cache statistics.
+        """
+        return {
+            'hits': self.stats.hits,
+            'misses': self.stats.misses,
+            'errors': self.stats.errors,
+            'total_requests': self.stats.total_requests,
+            'hit_ratio': self.stats.hits / max(self.stats.total_requests, 1),
+            'avg_response_time': self.stats.avg_response_time,
+            'redis_available': self.redis_available
+        }
+
+class LRUCache:
+    """Thread-safe LRU cache implementation for in-memory caching.
+
+    Attributes:
+        max_size (int): Maximum number of items to store.
+        cache (Dict[str, Dict[str, Any]]): In-memory cache storage.
+        access_order (List[str]): Order of access for cache keys.
+        lock (asyncio.Lock): Lock for thread-safe operations.
+    """
+
+    def __init__(self, max_size: int = 1000):
+        """Initializes LRU cache.
+
+        Args:
+            max_size (int): Maximum number of items to store.
         """
         self.max_size = max_size
-        self.cache = {}
-        self.access_order = []
+        self.cache: Dict[str, Dict[str, Any]] = {}
+        self.access_order: List[str] = []
         self.lock = asyncio.Lock()
 
     async def get(self, key: str) -> Optional[Any]:
-        """Get value from cache and update access order."""
+        """Gets value from cache and updates access order.
+
+        Args:
+            key (str): Cache key.
+
+        Returns:
+            Optional[Any]: Cached value if found and not expired, otherwise None.
+        """
         async with self.lock:
             if key not in self.cache:
                 return None
@@ -266,7 +390,13 @@ class LRUCache:
             return entry['value']
 
     async def set(self, key: str, value: Any, ttl: int):
-        """Set value in cache with TTL."""
+        """Sets value in cache with TTL.
+
+        Args:
+            key (str): Cache key.
+            value (Any): Value to cache.
+            ttl (int): Time-to-live in seconds.
+        """
         async with self.lock:
             # Evict oldest item if cache is full
             if len(self.cache) >= self.max_size:
@@ -283,20 +413,31 @@ class LRUCache:
             self.access_order.append(key)
 
     async def delete(self, key: str):
-        """Delete value from cache."""
+        """Deletes value from cache.
+
+        Args:
+            key (str): Cache key to delete.
+        """
         async with self.lock:
             if key in self.cache:
                 del self.cache[key]
                 self.access_order.remove(key)
 
     async def invalidate_by_tags(self, tags: List[str]) -> int:
-        """Invalidate cache entries by tags."""
+        """Invalidates cache entries by tags.
+
+        Args:
+            tags (List[str]): List of tags to match.
+
+        Returns:
+            int: Number of entries invalidated.
+        """
         count = 0
         async with self.lock:
             keys_to_delete = []
             for key, entry in self.cache.items():
-                if entry['value'].get('tags'):
-                    if any(tag in entry['value']['tags'] for tag in tags):
+                if entry['value'].get('cache_metadata', {}).get('tags'):
+                    if any(tag in entry['value']['cache_metadata']['tags'] for tag in tags):
                         keys_to_delete.append(key)
             
             for key in keys_to_delete:
@@ -305,12 +446,33 @@ class LRUCache:
             
             return count
 
-    def _is_expired(self, entry: Dict) -> bool:
-        """Check if cache entry is expired."""
+    async def clear(self):
+        """Clears all cache entries."""
+        async with self.lock:
+            self.cache.clear()
+            self.access_order.clear()
+
+    def _is_expired(self, entry: Dict[str, Any]) -> bool:
+        """Checks if cache entry is expired.
+
+        Args:
+            entry (Dict[str, Any]): Cache entry to check.
+
+        Returns:
+            bool: True if entry is expired, otherwise False.
+        """
         return time.time() > entry['expires_at']
 
     async def _evict_oldest(self):
-        """Evict oldest cache entry."""
+        """Evicts oldest cache entry."""
         if self.access_order:
             oldest_key = self.access_order[0]
             await self.delete(oldest_key)
+
+    def get_size(self) -> int:
+        """Gets current cache size.
+
+        Returns:
+            int: Number of items in cache.
+        """
+        return len(self.cache)

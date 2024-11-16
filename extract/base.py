@@ -11,21 +11,24 @@ Author: Development Team
 
 import ast
 from abc import ABC, abstractmethod
-from typing import Generator, Optional
+from typing import Generator, Optional, Dict, Any, List
 from logger import log_info, log_error, log_debug
 
 class BaseExtractor(ABC):
-    """
-    Base class for extracting information from AST nodes.
-    Provides common functionality and utility methods for subclasses.
+    """Base class for extracting information from AST nodes.
+
+    Provides common functionality and utility methods for subclasses to extract
+    specific details from Python source code.
     """
 
     def __init__(self, source_code: str):
-        """
-        Initialize the BaseExtractor with the source code and parse it into an AST.
+        """Initializes the BaseExtractor with the source code and parses it into an AST.
 
         Args:
             source_code (str): The source code to parse.
+
+        Raises:
+            SyntaxError: If the source code cannot be parsed into an AST.
         """
         try:
             log_debug("Attempting to parse source code into AST.")
@@ -36,8 +39,7 @@ class BaseExtractor(ABC):
             raise e
 
     def walk_tree(self) -> Generator[ast.AST, None, None]:
-        """
-        Walk the AST and yield all nodes.
+        """Walks the AST and yields all nodes.
 
         Yields:
             ast.AST: The next node in the AST.
@@ -48,8 +50,7 @@ class BaseExtractor(ABC):
             yield node
 
     def extract_docstring(self, node: ast.AST) -> Optional[str]:
-        """
-        Extract the docstring from an AST node.
+        """Extracts the docstring from an AST node.
 
         Args:
             node (ast.AST): The node to extract the docstring from.
@@ -69,52 +70,14 @@ class BaseExtractor(ABC):
             log_error(f"Failed to extract docstring: {e}")
             return None
 
-    def extract_annotations(self, node: ast.FunctionDef) -> dict:
-        """
-        Extract type annotations from a function node.
-
-        Args:
-            node (ast.FunctionDef): The function node to extract annotations from.
-
-        Returns:
-            dict: A dictionary containing argument and return type annotations.
-        """
-        try:
-            log_debug(f"Extracting annotations from node: {type(node).__name__}")
-            annotations = {
-                'returns': ast.unparse(node.returns) if node.returns else "Any",
-                'args': [(arg.arg, ast.unparse(arg.annotation) if arg.annotation else "Any") 
-                         for arg in node.args.args]
-            }
-            log_info(f"Annotations extracted for function '{node.name}': {annotations}")
-            return annotations
-        except Exception as e:
-            log_error(f"Failed to extract annotations: {e}")
-            return {}
-
-    @abstractmethod
-    def extract_details(self, node: ast.AST) -> dict:
-        """
-        Abstract method to extract details from a given AST node.
-        Must be implemented by subclasses.
-
-        Args:
-            node (ast.AST): The node to extract details from.
-
-        Returns:
-            dict: A dictionary containing extracted details.
-        """
-        pass
-
     def _get_type_annotation(self, arg: ast.arg) -> str:
-        """
-        Get type annotation as a string.
+        """Gets type annotation as a string.
 
         Args:
             arg (ast.arg): The argument node to extract type annotation from.
 
         Returns:
-            str: The type annotation.
+            str: The type annotation, or "Any" if not specified.
         """
         annotation = "Any"
         if arg.annotation:
@@ -126,8 +89,7 @@ class BaseExtractor(ABC):
         return annotation
 
     def _has_default(self, arg: ast.arg, node: ast.FunctionDef) -> bool:
-        """
-        Check if argument has a default value.
+        """Checks if an argument has a default value.
 
         Args:
             arg (ast.arg): The argument node to check.
@@ -139,8 +101,7 @@ class BaseExtractor(ABC):
         return arg in node.args.defaults
 
     def _get_default_value(self, arg: ast.arg, node: ast.FunctionDef) -> Optional[str]:
-        """
-        Get default value as a string if it exists.
+        """Gets default value as a string if it exists.
 
         Args:
             arg (ast.arg): The argument node to extract default value from.
@@ -156,3 +117,61 @@ class BaseExtractor(ABC):
         except Exception as e:
             log_error(f"Error extracting default value for argument '{arg.arg}': {e}")
         return None
+
+    def _extract_common_details(self, node: ast.AST) -> Dict[str, Any]:
+        """Extracts common details from an AST node.
+
+        Args:
+            node (ast.AST): The AST node to extract details from.
+
+        Returns:
+            Dict[str, Any]: A dictionary containing common details such as name, docstring, and line number.
+        """
+        return {
+            'name': getattr(node, 'name', '<unknown>'),
+            'docstring': self.extract_docstring(node),
+            'lineno': getattr(node, 'lineno', 0)
+        }
+
+    def _extract_decorators(self, node: ast.FunctionDef) -> List[str]:
+        """Extracts decorators from a function node.
+
+        Args:
+            node (ast.FunctionDef): The function node to extract decorators from.
+
+        Returns:
+            List[str]: A list of decorator names.
+        """
+        return [ast.unparse(decorator) for decorator in node.decorator_list]
+
+    def _detect_exceptions(self, node: ast.FunctionDef) -> List[str]:
+        """Detects exceptions that could be raised by the function.
+
+        Args:
+            node (ast.FunctionDef): The function node to analyze.
+
+        Returns:
+            List[str]: A list of exception names that could be raised.
+        """
+        exceptions = set()
+        for child in ast.walk(node):
+            if isinstance(child, ast.Raise):
+                if isinstance(child.exc, ast.Name):
+                    exceptions.add(child.exc.id)
+                elif isinstance(child.exc, ast.Call) and isinstance(child.exc.func, ast.Name):
+                    exceptions.add(child.exc.func.id)
+        return list(exceptions)
+
+    @abstractmethod
+    def extract_details(self, node: ast.AST) -> dict:
+        """Abstract method to extract details from a given AST node.
+
+        Must be implemented by subclasses.
+
+        Args:
+            node (ast.AST): The node to extract details from.
+
+        Returns:
+            dict: A dictionary containing extracted details.
+        """
+        pass

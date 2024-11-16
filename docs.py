@@ -7,8 +7,6 @@ including docstring management, markdown generation, and documentation workflow 
 
 Classes:
     DocStringManager: Manages docstring operations for source code files.
-    DocStringParser: Handles parsing and extraction of docstrings from Python source code.
-    DocStringGenerator: Generates docstrings for Python code elements.
     MarkdownGenerator: Generates markdown documentation from Python code elements.
     DocumentationManager: Manages the overall documentation generation process.
 
@@ -18,10 +16,10 @@ Functions:
 
 import ast
 import logging
-import inspect
 from typing import Optional, Dict, Any, List, Union
 from pathlib import Path
 from datetime import datetime
+from docstring_utils import parse_docstring, validate_docstring
 
 class DocStringManager:
     """
@@ -30,7 +28,6 @@ class DocStringManager:
     Attributes:
         source_code (str): The source code to manage docstrings for.
         tree (ast.AST): The abstract syntax tree of the source code.
-        docstring_parser (DocStringParser): An instance of DocStringParser for parsing operations.
     """
 
     def __init__(self, source_code: str):
@@ -42,7 +39,6 @@ class DocStringManager:
         """
         self.source_code = source_code
         self.tree = ast.parse(source_code)
-        self.docstring_parser = DocStringParser()
         logging.debug("DocStringManager initialized.")
 
     def insert_docstring(self, node: ast.FunctionDef, docstring: str) -> None:
@@ -113,150 +109,6 @@ class DocStringManager:
         logging.info("Markdown documentation generated.")
         return markdown
     
-class DocStringParser:
-    """
-    Handles parsing and extraction of docstrings from Python source code.
-
-    Methods:
-        extract_docstring(source_code: str) -> Optional[str]: Extracts the module-level docstring.
-        parse_function_docstring(func) -> Dict[str, Any]: Parses function docstring into a structured format.
-    """
-    
-    @staticmethod
-    def extract_docstring(source_code: str) -> Optional[str]:
-        """
-        Extract the module-level docstring from source code.
-
-        Args:
-            source_code (str): The source code to parse
-
-        Returns:
-            Optional[str]: The extracted docstring or None if not found
-        """
-        logging.debug("Extracting module-level docstring.")
-        try:
-            tree = ast.parse(source_code)
-            docstring = ast.get_docstring(tree)
-            logging.debug(f"Extracted docstring: {docstring}")
-            return docstring
-        except Exception as e:
-            logging.error(f"Failed to parse source code: {e}")
-            return None
-
-    @staticmethod
-    def parse_function_docstring(func) -> Dict[str, Any]:
-        """
-        Parse function docstring into structured format.
-
-        Args:
-            func: The function object to parse
-
-        Returns:
-            Dict[str, Any]: Structured docstring information
-        """
-        logging.debug(f"Parsing docstring for function: {func.__name__}")
-        doc = inspect.getdoc(func)
-        if not doc:
-            logging.debug("No docstring found.")
-            return {}
-
-        sections = {
-            'description': '',
-            'args': {},
-            'returns': '',
-            'raises': [],
-            'examples': []
-        }
-
-        current_section = 'description'
-        lines = doc.split('\n')
-
-        for line in lines:
-            line = line.strip()
-            if line.lower().startswith('args:'):
-                current_section = 'args'
-                continue
-            elif line.lower().startswith('returns:'):
-                current_section = 'returns'
-                continue
-            elif line.lower().startswith('raises:'):
-                current_section = 'raises'
-                continue
-            elif line.lower().startswith('example'):
-                current_section = 'examples'
-                continue
-
-            if current_section == 'description' and line:
-                sections['description'] += line + ' '
-            elif current_section == 'args' and line:
-                if ':' in line:
-                    param, desc = line.split(':', 1)
-                    sections['args'][param.strip()] = desc.strip()
-            elif current_section == 'returns' and line:
-                sections['returns'] += line + ' '
-            elif current_section == 'raises' and line:
-                sections['raises'].append(line)
-            elif current_section == 'examples' and line:
-                sections['examples'].append(line)
-
-        logging.debug(f"Parsed docstring sections: {sections}")
-        return sections
-
-class DocStringGenerator:
-    """
-    Generates docstrings for Python code elements.
-
-    Methods:
-        generate_class_docstring(class_name: str, description: str) -> str: Generates a docstring for a class.
-        generate_function_docstring(func_name: str, params: List[str], description: str, returns: Optional[str] = None) -> str: Generates a docstring for a function.
-    """
-
-    @staticmethod
-    def generate_class_docstring(class_name: str, description: str) -> str:
-        """
-        Generate a docstring for a class.
-
-        Args:
-            class_name (str): Name of the class
-            description (str): Description of the class purpose
-
-        Returns:
-            str: Generated docstring
-        """
-        logging.debug(f"Generating class docstring for: {class_name}")
-        return f'"""{description}\n\nAttributes:\n    Add class attributes here\n"""'
-
-    @staticmethod
-    def generate_function_docstring(
-        func_name: str,
-        params: List[str],
-        description: str,
-        returns: Optional[str] = None
-    ) -> str:
-        """
-        Generate a docstring for a function.
-
-        Args:
-            func_name (str): Name of the function
-            params (List[str]): List of parameter names
-            description (str): Description of the function
-            returns (Optional[str]): Description of return value
-
-        Returns:
-            str: Generated docstring
-        """
-        logging.debug(f"Generating function docstring for: {func_name}")
-        docstring = f'"""{description}\n\nArgs:\n'
-        for param in params:
-            docstring += f"    {param}: Description for {param}\n"
-        
-        if returns:
-            docstring += f"\nReturns:\n    {returns}\n"
-        
-        docstring += '"""'
-        logging.debug(f"Generated docstring: {docstring}")
-        return docstring
-
 class MarkdownGenerator:
     """
     Generates markdown documentation from Python code elements.
@@ -325,9 +177,6 @@ class DocumentationManager:
 
     Attributes:
         output_dir (Path): Directory for output documentation.
-        parser (DocStringParser): Instance for parsing docstrings.
-        generator (DocStringGenerator): Instance for generating docstrings.
-        markdown (MarkdownGenerator): Instance for generating markdown.
         logger (logging.Logger): Logger instance for logging.
 
     Methods:
@@ -346,9 +195,6 @@ class DocumentationManager:
         """
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(exist_ok=True)
-        self.parser = DocStringParser()
-        self.generator = DocStringGenerator()
-        self.markdown = MarkdownGenerator()
         self.logger = self._setup_logging()
         logging.debug("DocumentationManager initialized.")
 
@@ -392,11 +238,12 @@ class DocumentationManager:
             with open(file_path, 'r') as f:
                 source = f.read()
 
-            module_doc = self.parser.extract_docstring(source)
+            module_doc = parse_docstring(source)
             
-            self.markdown.add_header(f"Documentation for {file_path.name}")
+            markdown_gen = MarkdownGenerator()
+            markdown_gen.add_header(f"Documentation for {file_path.name}")
             if module_doc:
-                self.markdown.add_section("Module Description", module_doc)
+                markdown_gen.add_section("Module Description", module_doc.get('Description', ''))
 
             # Parse the source code
             tree = ast.parse(source)
@@ -404,11 +251,11 @@ class DocumentationManager:
             # Process classes and functions
             for node in ast.walk(tree):
                 if isinstance(node, ast.ClassDef):
-                    self._process_class(node)
+                    self._process_class(node, markdown_gen)
                 elif isinstance(node, ast.FunctionDef):
-                    self._process_function(node)
+                    self._process_function(node, markdown_gen)
 
-            markdown = self.markdown.generate_markdown()
+            markdown = markdown_gen.generate_markdown()
             logging.info(f"Generated markdown for file: {file_path}")
             return markdown
 
@@ -416,32 +263,34 @@ class DocumentationManager:
             self.logger.error(f"Error processing file {file_path}: {e}")
             return None
 
-    def _process_class(self, node: ast.ClassDef) -> None:
+    def _process_class(self, node: ast.ClassDef, markdown_gen: MarkdownGenerator) -> None:
         """
         Process a class definition node.
 
         Args:
             node (ast.ClassDef): AST node representing a class definition
+            markdown_gen (MarkdownGenerator): Markdown generator instance
         """
         logging.debug(f"Processing class: {node.name}")
         try:
             class_doc = ast.get_docstring(node)
-            self.markdown.add_section(f"Class: {node.name}", 
+            markdown_gen.add_section(f"Class: {node.name}", 
                                     class_doc if class_doc else "No documentation available")
             
             # Process class methods
             for item in node.body:
                 if isinstance(item, ast.FunctionDef):
-                    self._process_function(item, is_method=True, class_name=node.name)
+                    self._process_function(item, markdown_gen, is_method=True, class_name=node.name)
         except Exception as e:
             self.logger.error(f"Error processing class {node.name}: {e}")
 
-    def _process_function(self, node: ast.FunctionDef, is_method: bool = False, class_name: str = None) -> None:
+    def _process_function(self, node: ast.FunctionDef, markdown_gen: MarkdownGenerator, is_method: bool = False, class_name: str = None) -> None:
         """
         Process a function definition node.
 
         Args:
             node (ast.FunctionDef): AST node representing a function definition
+            markdown_gen (MarkdownGenerator): Markdown generator instance
             is_method (bool): Whether the function is a class method
             class_name (str): Name of the containing class if is_method is True
         """
@@ -461,7 +310,7 @@ class DocumentationManager:
                 func_doc if func_doc else "No documentation available"
             ]
             
-            self.markdown.add_section(section_title, "\n".join(content))
+            markdown_gen.add_section(section_title, "\n".join(content))
         except Exception as e:
             self.logger.error(f"Error processing function {node.name}: {e}")
 

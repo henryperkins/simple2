@@ -2,10 +2,10 @@
 Interaction Handler Module
 
 This module manages the orchestration of docstring generation with integrated caching,
-monitoring, and error handling. It processes functions in batches and interacts with
+monitoring, and error handling. It processes functions and classes in batches and interacts with
 the Azure OpenAI API to generate documentation.
 
-Version: 1.1.0
+Version: 1.2.0
 Author: Development Team
 """
 
@@ -19,9 +19,11 @@ from dotenv import load_dotenv
 from api_client import AzureOpenAIClient
 from docs import DocStringManager
 from cache import Cache
-from logger import log_info, log_error, log_debug
+from logger import log_info, log_error, log_debug, log_warning
 from monitoring import SystemMonitor
 from extract.extraction_manager import ExtractionManager
+from docstring_utils import analyze_code_element_docstring, parse_docstring, validate_docstring
+from response_parser import ResponseParser
 
 # Load environment variables from .env file
 load_dotenv()
@@ -29,11 +31,13 @@ load_dotenv()
 class InteractionHandler:
     """
     Manages the orchestration of docstring generation with integrated caching,
-    monitoring, and error handling.
+    monitoring, and error handling. This class processes functions and classes
+    in batches and interacts with the Azure OpenAI API to generate documentation.
     """
 
     def __init__(
         self,
+        client: Optional[AzureOpenAIClient] = None,
         endpoint: Optional[str] = None,
         api_key: Optional[str] = None,
         cache_config: Optional[Dict] = None,
@@ -43,24 +47,24 @@ class InteractionHandler:
         Initialize the InteractionHandler with necessary components.
 
         Args:
+            client (Optional[AzureOpenAIClient]): The Azure OpenAI client instance.
             endpoint (Optional[str]): The Azure OpenAI endpoint.
             api_key (Optional[str]): The API key for Azure OpenAI.
             cache_config (Optional[Dict]): Configuration for the cache.
             batch_size (int): Number of functions to process concurrently.
         """
-        endpoint = endpoint or os.getenv("AZURE_OPENAI_ENDPOINT")
-        api_key = api_key or os.getenv("AZURE_OPENAI_KEY")
-        self.api_client = AzureOpenAIClient(endpoint=endpoint, api_key=api_key)
+        self.client = client or AzureOpenAIClient(endpoint=endpoint, api_key=api_key)
         self.cache = Cache(**(cache_config or {}))
         self.monitor = SystemMonitor()
         self.batch_size = batch_size
         self.semaphore = asyncio.Semaphore(batch_size)
         self.extraction_manager = ExtractionManager()
+        self.response_parser = ResponseParser()
         log_info("Interaction Handler initialized with batch processing capability")
 
     async def process_all_functions(self, source_code: str) -> Tuple[Optional[str], Optional[str]]:
         """
-        Process all functions in the source code with batch processing and rate limiting.
+        Process all functions and classes in the source code with batch processing and rate limiting.
 
         Args:
             source_code (str): The complete source code to process.
@@ -68,27 +72,36 @@ class InteractionHandler:
         Returns:
             Tuple[Optional[str], Optional[str]]: Updated source code and documentation.
         """
-        log_debug("Starting batch processing of all functions.")
+        log_debug("Starting batch processing of all functions and classes.")
         try:
             # Extract metadata using the centralized manager
             metadata = self.extraction_manager.extract_metadata(source_code)
             functions = metadata['functions']
-            log_info(f"Extracted {len(functions)} functions from source code.")
+            classes = metadata.get('classes', [])
+            
+            log_info(f"Extracted {len(functions)} functions and {len(classes)} classes from source code.")
 
             # Process functions in batches
-            results = []
+            function_results = []
             for i in range(0, len(functions), self.batch_size):
                 batch = functions[i: i + self.batch_size]
-                log_debug(f"Processing batch of functions: {[func['name'] for func in batch]}")
                 batch_tasks = [self.process_function(source_code, func_info) for func_info in batch]
                 batch_results = await asyncio.gather(*batch_tasks)
-                results.extend(batch_results)
+                function_results.extend(batch_results)
+
+            # Process classes
+            class_results = []
+            for class_info in classes:
+                class_result = await self.process_class(source_code, class_info)
+                if class_result:
+                    class_results.append(class_result)
 
             # Update source code and generate documentation
             manager = DocStringManager(source_code)
             documentation_entries = []
 
-            for function_info, (docstring, metadata) in zip(functions, results):
+            # Add function documentation
+            for function_info, (docstring, metadata) in zip(functions, function_results):
                 if docstring:
                     manager.insert_docstring(function_info["node"], docstring)
                     if metadata:
@@ -100,6 +113,18 @@ class InteractionHandler:
                             "changelog": metadata.get("changelog", ""),
                         })
 
+            # Add class documentation
+            for class_info, (docstring, metadata) in zip(classes, class_results):
+                if docstring:
+                    manager.insert_docstring(class_info["node"], docstring)
+                    if metadata:
+                        documentation_entries.append({
+                            "class_name": class_info["name"],
+                            "docstring": docstring,
+                            "summary": metadata.get("summary", ""),
+                            "methods": class_info.get("methods", [])
+                        })
+
             updated_code = manager.update_source_code(documentation_entries)
             documentation = manager.generate_markdown_documentation(documentation_entries)
 
@@ -108,7 +133,8 @@ class InteractionHandler:
             manager.save_documentation(documentation, output_file)
 
             # Log final metrics
-            self.monitor.log_batch_completion(len(functions))
+            total_items = len(functions) + len(classes)
+            self.monitor.log_batch_completion(total_items)
             log_info("Batch processing completed successfully.")
 
             return updated_code, documentation
@@ -126,62 +152,157 @@ class InteractionHandler:
             function_info (Dict): Metadata about the function to process.
 
         Returns:
-            Tuple[Optional[str], Optional[Dict]]: The generated docstring and metadata.
+            Tuple[Optional[str], Optional[Dict]]: The generated docstring and metadata, or None if failed.
         """
         async with self.semaphore:
             func_name = function_info.get('name', 'unknown')
+            start_time = time.time()
+
             try:
-                start_time = time.time()
-                function_node = function_info['node']
+                # Check cache first
+                cache_key = self._generate_cache_key(function_info['node'])
+                cached_response = await self.cache.get_cached_docstring(cache_key)
+                
+                if cached_response:
+                    # Validate cached response
+                    parsed_cached = self.response_parser.parse_docstring_response(
+                        cached_response
+                    )
+                    if parsed_cached and validate_docstring(parsed_cached):
+                        log_info(f"Using valid cached docstring for {func_name}")
+                        self.monitor.log_cache_hit(func_name)
+                        return parsed_cached['docstring'], cached_response
+                    else:
+                        log_warning(f"Invalid cached docstring found for {func_name}, will regenerate")
+                        await self.cache.invalidate_by_tags([cache_key])
 
-                # Use extracted metadata for docstring generation
-                response = await self.api_client.get_docstring(
-                    func_name=function_info['name'],
-                    params=function_info['args'],
-                    return_type=function_info['returns'],
-                    complexity_score=function_info.get('complexity_score', 0),
-                    existing_docstring=function_info['docstring'],
-                    decorators=function_info['decorators'],
-                    exceptions=function_info.get('exceptions', []),
-                    max_tokens=4000,
-                    temperature=0.2
-                )
+                # Check existing docstring
+                existing_docstring = function_info.get('docstring')
+                if existing_docstring and validate_docstring(parse_docstring(existing_docstring)):
+                    log_info(f"Existing complete docstring found for {func_name}")
+                    return existing_docstring, None
 
-                if not response:
-                    return None, None
+                # Attempt to generate new docstring
+                max_attempts = 3
+                for attempt in range(max_attempts):
+                    try:
+                        response = await self.client.get_docstring(
+                            func_name=function_info['name'],
+                            params=function_info['args'],
+                            return_type=function_info['returns'],
+                            complexity_score=function_info.get('complexity_score', 0),
+                            existing_docstring=function_info['docstring'],
+                            decorators=function_info['decorators'],
+                            exceptions=function_info.get('exceptions', [])
+                        )
 
-                # Process response
-                docstring_data = response['content']
+                        if not response:
+                            log_error(f"Failed to generate docstring for {func_name} (attempt {attempt + 1}/{max_attempts})")
+                            continue
 
-                # Cache the result
-                await self.cache.save_docstring(
-                    self._generate_cache_key(function_node),
-                    {
-                        'docstring': docstring_data['docstring'],
-                        'metadata': {
-                            'summary': docstring_data['summary'],
-                            'complexity_score': docstring_data['complexity_score'],
-                            'changelog': docstring_data.get('changelog', 'Initial documentation')
-                        }
-                    }
-                )
+                        # Parse and validate the response
+                        parsed_response = self.response_parser.parse_json_response(
+                            response['content']
+                        )
 
-                # Log metrics
-                self.monitor.log_operation_complete(
-                    func_name=func_name,
-                    duration=time.time() - start_time,
-                    tokens=response['usage']['total_tokens']
-                )
+                        if not parsed_response:
+                            log_error(f"Failed to parse response for {func_name} (attempt {attempt + 1}/{max_attempts})")
+                            continue
 
-                log_info(f"Processed function '{func_name}' successfully.")
-                return docstring_data['docstring'], docstring_data
+                        # Validate the generated docstring
+                        if validate_docstring(parsed_response['docstring']):
+                            # Cache successful generation
+                            await self.cache.save_docstring(
+                                cache_key,
+                                {
+                                    'docstring': parsed_response['docstring'],
+                                    'metadata': {
+                                        'timestamp': time.time(),
+                                        'function_name': func_name,
+                                        'summary': parsed_response.get('summary', ''),
+                                        'complexity_score': parsed_response.get('complexity_score', 0)
+                                    }
+                                },
+                                tags=[f"func:{func_name}"]
+                            )
 
-            except TimeoutError:
-                log_error(f"Timeout occurred while processing function {func_name}.")
+                            # Log success metrics
+                            self.monitor.log_operation_complete(
+                                func_name=func_name,
+                                duration=time.time() - start_time,
+                                tokens=response['usage']['total_tokens']
+                            )
+
+                            log_info(f"Successfully generated and cached docstring for {func_name}")
+                            return parsed_response['docstring'], parsed_response
+
+                        else:
+                            log_warning(f"Generated docstring incomplete for {func_name} (attempt {attempt + 1}/{max_attempts})")
+                            self.monitor.log_docstring_issue(func_name, "incomplete_generated")
+
+                    except asyncio.TimeoutError:
+                        log_error(f"Timeout generating docstring for {func_name} (attempt {attempt + 1}/{max_attempts})")
+                        await asyncio.sleep(2 ** attempt)  # Exponential backoff
+                    except Exception as e:
+                        log_error(f"Error generating docstring for {func_name} (attempt {attempt + 1}/{max_attempts}): {e}")
+                        await asyncio.sleep(2 ** attempt)
+
+                # If all attempts fail
+                log_error(f"Failed to generate valid docstring for {func_name} after {max_attempts} attempts")
+                self.monitor.log_docstring_failure(func_name, "max_attempts_exceeded")
                 return None, None
+
             except Exception as e:
-                self.monitor.log_error_event(f"Error processing function {func_name}: {str(e)}")
+                log_error(f"Unexpected error processing function {func_name}: {e}")
+                self.monitor.log_docstring_failure(func_name, str(e))
                 return None, None
+            finally:
+                # Log timing metrics regardless of outcome
+                self.monitor.log_request(
+                    func_name,
+                    status="complete",
+                    response_time=time.time() - start_time
+                )
+
+    async def process_class(self, source_code: str, class_info: Dict) -> Tuple[Optional[str], Optional[Dict]]:
+        """
+        Process a single class with enhanced error handling and monitoring.
+
+        Args:
+            source_code (str): The source code containing the class.
+            class_info (Dict): Metadata about the class to process.
+
+        Returns:
+            Tuple[Optional[str], Optional[Dict]]: The generated docstring and metadata, or None if failed.
+        """
+        class_name = class_info.get('name', 'unknown')
+        start_time = time.time()
+
+        try:
+            # Generate docstring for class
+            response = await self.client.get_docstring(
+                func_name=class_name,
+                params=[],
+                return_type="None",
+                complexity_score=0,
+                existing_docstring=class_info.get('docstring', ''),
+                decorators=class_info.get('decorators', []),
+                exceptions=[]
+            )
+
+            if response and response.get('content'):
+                return response['content'].get('docstring'), response['content']
+            return None, None
+
+        except Exception as e:
+            log_error(f"Error processing class {class_name}: {e}")
+            return None, None
+        finally:
+            self.monitor.log_request(
+                class_name,
+                status="complete",
+                response_time=time.time() - start_time
+            )
 
     def _generate_cache_key(self, function_node: ast.FunctionDef) -> str:
         """

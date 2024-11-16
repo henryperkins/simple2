@@ -37,10 +37,16 @@ class BatchMetrics:
     average_time_per_function: float
 
 class SystemMonitor:
-    """System monitoring and metrics tracking."""
+    """
+    System monitoring and metrics tracking.
+
+    This class provides methods to log various system events, such as API requests,
+    cache hits and misses, and docstring changes. It also generates summaries of
+    system performance and usage metrics.
+    """
 
     def __init__(self):
-        """Initialize monitoring system."""
+        """Initialize the monitoring system with default metrics and start time."""
         self.requests = []
         self.metrics = {}
         self.api_metrics = []
@@ -60,7 +66,7 @@ class SystemMonitor:
 
     def log_request(
         self,
-        func_name: str,  # Required parameter 
+        func_name: str,
         status: str,
         response_time: Optional[float] = None,
         tokens: Optional[int] = None,
@@ -71,12 +77,12 @@ class SystemMonitor:
         Log API request details with timing and token usage.
 
         Args:
-            func_name: Name of the function that made the request
-            status: Status of the request (success/error)
-            response_time: Response time in seconds
-            tokens: Number of tokens used
-            endpoint: API endpoint called
-            error: Optional error message if request failed
+            func_name (str): Name of the function that made the request.
+            status (str): Status of the request (success/error).
+            response_time (Optional[float]): Response time in seconds.
+            tokens (Optional[int]): Number of tokens used.
+            endpoint (Optional[str]): API endpoint called.
+            error (Optional[str]): Optional error message if request failed.
         """
         try:
             request = {
@@ -106,14 +112,22 @@ class SystemMonitor:
             )
         except Exception as e:
             log_debug(f"Non-critical monitoring error: {str(e)}")
-            return
 
     def log_debug_event(self, message: str) -> None:
-        """Log a debug event."""
+        """Log a debug event with a specified message."""
         log_debug(message)
 
     def log_api_request(self, endpoint: str, tokens: int, response_time: float, status: str, error: Optional[str] = None) -> None:
-        """Log an API request with detailed metrics."""
+        """
+        Log an API request with detailed metrics.
+
+        Args:
+            endpoint (str): The API endpoint called.
+            tokens (int): Number of tokens used in the request.
+            response_time (float): Response time in seconds.
+            status (str): Status of the request (success/error).
+            error (Optional[str]): Optional error message if request failed.
+        """
         log_debug(f"Logging API request to endpoint: {endpoint}")
         metric = APIMetrics(
             timestamp=time.time(),
@@ -127,17 +141,33 @@ class SystemMonitor:
         log_info(f"API Request logged: {endpoint} - Status: {status}")
 
     def log_cache_hit(self, function_name: str) -> None:
-        """Log a cache hit event."""
+        """
+        Log a cache hit event.
+
+        Args:
+            function_name (str): Name of the function for which the cache was hit.
+        """
         self.cache_hits += 1
         log_info(f"Cache hit for function: {function_name}")
 
     def log_cache_miss(self, function_name: str) -> None:
-        """Log a cache miss event."""
+        """
+        Log a cache miss event.
+
+        Args:
+            function_name (str): Name of the function for which the cache was missed.
+        """
         self.cache_misses += 1
         log_info(f"Cache miss for function: {function_name}")
 
     def log_docstring_changes(self, action: str, function_name: str) -> None:
-        """Log changes to function docstrings."""
+        """
+        Log changes to function docstrings.
+
+        Args:
+            action (str): The action performed on the docstring (e.g., 'added', 'updated').
+            function_name (str): Name of the function whose docstring was changed.
+        """
         log_debug(f"Logging docstring change: {action} for function: {function_name}")
         if action in self.docstring_changes:
             self.docstring_changes[action].append({
@@ -149,7 +179,14 @@ class SystemMonitor:
             log_error(f"Unknown docstring action: {action}")
 
     def log_operation_complete(self, function_name: str, execution_time: float, tokens_used: int) -> None:
-        """Log completion of a function processing operation."""
+        """
+        Log completion of a function processing operation.
+
+        Args:
+            function_name (str): Name of the function processed.
+            execution_time (float): Time taken to process the function.
+            tokens_used (int): Number of tokens used in the operation.
+        """
         log_debug(f"Logging operation completion for function: {function_name}")
         self.current_batch['total_tokens'] += tokens_used
         self.current_batch['total_time'] += execution_time
@@ -161,10 +198,10 @@ class SystemMonitor:
         Log completion of a batch processing operation.
 
         Args:
-            total_functions: Total number of functions in the batch
+            total_functions (int): Total number of functions in the batch.
 
         Returns:
-            BatchMetrics: Metrics for the completed batch
+            BatchMetrics: Metrics for the completed batch.
         """
         log_debug("Logging batch completion")
         metrics = BatchMetrics(
@@ -191,7 +228,7 @@ class SystemMonitor:
         Generate a comprehensive metrics summary.
 
         Returns:
-            Dict: Complete metrics summary
+            Dict[str, Any]: Complete metrics summary including runtime, API metrics, cache metrics, and docstring changes.
         """
         log_debug("Generating metrics summary")
         runtime = time.time() - self.start_time
@@ -225,7 +262,7 @@ class SystemMonitor:
         Export metrics to a JSON file.
 
         Args:
-            filepath: Path to save the metrics file
+            filepath (str): Path to save the metrics file.
         """
         log_debug(f"Exporting metrics to file: {filepath}")
         try:

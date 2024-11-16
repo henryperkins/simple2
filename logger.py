@@ -71,3 +71,7 @@ def log_debug(message):
 def log_exception(message):
     """Log an exception with traceback."""
     logger.exception(message)
+
+def log_warning(message):
+    """Log a warning message."""
+    logger.warning(message)

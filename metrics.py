@@ -4,7 +4,7 @@ Code Metrics Analysis Module
 This module provides comprehensive code quality and complexity metrics for Python source code,
 including cyclomatic complexity, cognitive complexity, Halstead metrics, and code quality analysis.
 
-Version: 1.0.0
+Version: 1.1.0
 Author: Development Team
 """
 
@@ -188,11 +188,18 @@ class Metrics:
         operator_count = 0
         operand_count = 0
 
+        # Define operator and operand types
+        operator_nodes = (ast.Add, ast.Sub, ast.Mult, ast.Div, ast.Mod, ast.Pow, ast.LShift, ast.RShift,
+                          ast.BitOr, ast.BitXor, ast.BitAnd, ast.FloorDiv, ast.And, ast.Or, ast.Not, ast.Invert,
+                          ast.UAdd, ast.USub, ast.Eq, ast.NotEq, ast.Lt, ast.LtE, ast.Gt, ast.GtE, ast.Is, ast.IsNot,
+                          ast.In, ast.NotIn, ast.Call, ast.Attribute, ast.Subscript, ast.Index, ast.Slice)
+        operand_nodes = (ast.Num, ast.Str, ast.Bytes, ast.Name, ast.List, ast.Tuple, ast.Set, ast.Dict, ast.Constant)
+
         for n in ast.walk(node):
-            if isinstance(n, (ast.Add, ast.Sub, ast.Mult, ast.Div, ast.Mod, ast.Pow, ast.LShift, ast.RShift, ast.BitOr, ast.BitXor, ast.BitAnd, ast.FloorDiv)):
+            if isinstance(n, operator_nodes):
                 operators.add(type(n).__name__)
                 operator_count += 1
-            elif isinstance(n, (ast.Num, ast.Str, ast.Name, ast.List, ast.Tuple, ast.Set, ast.Dict)):
+            elif isinstance(n, operand_nodes):
                 operands.add(type(n).__name__)
                 operand_count += 1
 

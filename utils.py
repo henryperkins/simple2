@@ -11,13 +11,13 @@ from logger import log_info, log_error, log_debug
 
 def generate_hash(content: str) -> str:
     """
-    Generate a hash value for the given content.
+    Generate an MD5 hash for the given content.
 
     Args:
-        content (str): The content to hash
+        content (str): The content to hash.
 
     Returns:
-        str: The generated hash value
+        str: The generated MD5 hash value.
     """
     log_debug(f"Generating hash for content of length {len(content)}.")
     hash_value = hashlib.md5(content.encode()).hexdigest()
@@ -26,18 +26,18 @@ def generate_hash(content: str) -> str:
 
 async def load_json_file(filepath: str, max_retries: int = 3) -> Dict:
     """
-    Load and parse a JSON file with retry mechanism.
+    Load and parse a JSON file with a retry mechanism.
 
     Args:
-        filepath (str): Path to the JSON file
-        max_retries (int): Maximum number of retry attempts
+        filepath (str): Path to the JSON file.
+        max_retries (int): Maximum number of retry attempts.
 
     Returns:
-        Dict: Parsed JSON data
+        Dict: Parsed JSON data.
 
     Raises:
-        FileNotFoundError: If the file doesn't exist
-        json.JSONDecodeError: If the file contains invalid JSON
+        FileNotFoundError: If the file doesn't exist.
+        json.JSONDecodeError: If the file contains invalid JSON.
     """
     log_debug(f"Loading JSON file: {filepath}")
     for attempt in range(max_retries):
@@ -57,9 +57,10 @@ async def load_json_file(filepath: str, max_retries: int = 3) -> Dict:
             log_error(f"Unexpected error loading JSON file {filepath}: {e}")
             if attempt == max_retries - 1:
                 raise
+        # Exponential backoff before retrying
         await asyncio.sleep(2 ** attempt)
     
-    # If all retries fail, raise an exception or return an empty dictionary
+    # If all retries fail, log an error and return an empty dictionary
     log_error(f"Failed to load JSON file after {max_retries} attempts: {filepath}")
     return {}
 
@@ -68,10 +69,7 @@ def ensure_directory(directory_path: str) -> None:
     Ensure a directory exists, creating it if necessary.
 
     Args:
-        directory_path (str): The path of the directory to ensure exists
-
-    Returns:
-        None
+        directory_path (str): The path of the directory to ensure exists.
     """
     log_debug(f"Ensuring directory exists: {directory_path}")
     os.makedirs(directory_path, exist_ok=True)
@@ -82,11 +80,11 @@ def validate_file_path(filepath: str, extension: str = '.py') -> bool:
     Validate if a file path exists and has the correct extension.
 
     Args:
-        filepath (str): The path to the file to validate
-        extension (str): The expected file extension (default: '.py')
+        filepath (str): The path to the file to validate.
+        extension (str): The expected file extension (default: '.py').
 
     Returns:
-        bool: True if the file path is valid, False otherwise
+        bool: True if the file path is valid, False otherwise.
     """
     is_valid = os.path.isfile(filepath) and filepath.endswith(extension)
     log_debug(f"File path validation for '{filepath}' with extension '{extension}': {is_valid}")
@@ -97,11 +95,11 @@ def create_error_result(error_type: str, error_message: str) -> Dict[str, str]:
     Create a standardized error result dictionary.
 
     Args:
-        error_type (str): The type of error that occurred
-        error_message (str): The detailed error message
+        error_type (str): The type of error that occurred.
+        error_message (str): The detailed error message.
 
     Returns:
-        Dict[str, str]: Dictionary containing error information
+        Dict[str, str]: Dictionary containing error information.
     """
     error_result = {
         'error_type': error_type,
@@ -116,10 +114,10 @@ def add_parent_info(tree: ast.AST) -> None:
     Add parent node information to each node in an AST.
 
     Args:
-        tree (ast.AST): The Abstract Syntax Tree to process
+        tree (ast.AST): The Abstract Syntax Tree to process.
 
     Returns:
-        None: Modifies the tree in place
+        None: Modifies the tree in place.
     """
     log_debug("Adding parent information to AST nodes.")
     for parent in ast.walk(tree):
@@ -132,11 +130,11 @@ def get_file_stats(filepath: str) -> Dict[str, Any]:
     Get statistical information about a file.
 
     Args:
-        filepath (str): Path to the file to analyze
+        filepath (str): Path to the file to analyze.
 
     Returns:
         Dict[str, Any]: Dictionary containing file statistics including size,
-                       modification time, and other relevant metrics
+                        modification time, and other relevant metrics.
     """
     log_debug(f"Getting file statistics for: {filepath}")
     stats = os.stat(filepath)
@@ -158,12 +156,12 @@ def filter_files(
     Filter files in a directory based on patterns.
 
     Args:
-        directory (str): The directory path to search in
-        pattern (str): The pattern to match files against (default: '*.py')
-        exclude_patterns (Optional[List[str]]): Patterns to exclude from results
+        directory (str): The directory path to search in.
+        pattern (str): The pattern to match files against (default: '*.py').
+        exclude_patterns (Optional[List[str]]): Patterns to exclude from results.
 
     Returns:
-        List[str]: List of file paths that match the criteria
+        List[str]: List of file paths that match the criteria.
     """
     log_debug(f"Filtering files in directory '{directory}' with pattern '{pattern}'.")
     exclude_patterns = exclude_patterns or []
