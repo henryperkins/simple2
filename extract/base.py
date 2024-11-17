@@ -12,7 +12,7 @@ Author: Development Team
 import ast
 from abc import ABC, abstractmethod
 from typing import Generator, Optional, Dict, Any, List
-from logger import log_info, log_error, log_debug
+from core.logger import log_info, log_error, log_debug
 
 class BaseExtractor(ABC):
     """Base class for extracting information from AST nodes.

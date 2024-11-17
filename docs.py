@@ -19,9 +19,10 @@ import logging
 from typing import Optional, Dict, Any, List, Union
 from pathlib import Path
 from datetime import datetime
-from docstring_utils import parse_docstring, validate_docstring
-from logger import log_error
-from utils import handle_exceptions  # Import the decorator
+from docstring_utils import parse_docstring, validate_docstring, parse_and_validate_docstring
+from core.logger import log_error
+from core.utils import handle_exceptions  # Import the decorator
+from docstring_utils import DocstringValidator  # Assuming this is where the validator is defined
 
 class DocStringManager:
     """
@@ -34,19 +35,20 @@ class DocStringManager:
 
     def __init__(self, source_code: str):
         """
-        Initialize with source code.
+        Initialize with source code and validator.
 
         Args:
             source_code (str): The source code to manage docstrings for
         """
         self.source_code = source_code
         self.tree = ast.parse(source_code)
-        logging.debug("DocStringManager initialized.")
+        self.validator = DocstringValidator()
+        logging.debug("DocStringManager initialized with validator.")
 
     @handle_exceptions(log_error)
     def insert_docstring(self, node: ast.FunctionDef, docstring: str) -> None:
         """
-        Insert or update docstring for a function node.
+        Insert or update docstring with validation.
 
         Args:
             node (ast.FunctionDef): The function node to update
@@ -55,13 +57,21 @@ class DocStringManager:
         if not isinstance(docstring, str):
             log_error(f"Invalid docstring for function '{node.name}'. Expected a string.")
             return
-        logging.debug(f"Inserting docstring into function '{node.name}'.")
-        node.body.insert(0, ast.Expr(value=ast.Constant(value=docstring)))
+
+        # Validate before insertion
+        parsed_docstring, validation_errors = parse_and_validate_docstring(docstring)
+        if parsed_docstring:
+            logging.debug(f"Inserting validated docstring into function '{node.name}'.")
+            node.body.insert(0, ast.Expr(value=ast.Constant(value=docstring)))
+        else:
+            log_error(
+                f"Docstring validation failed for {node.name}: {validation_errors}"
+            )
 
     @handle_exceptions(log_error)
     def update_source_code(self, documentation_entries: List[Dict]) -> str:
         """
-        Update source code with new docstrings.
+        Update source code with validated docstrings.
 
         Args:
             documentation_entries (List[Dict]): List of documentation updates
@@ -69,11 +79,20 @@ class DocStringManager:
         Returns:
             str: Updated source code
         """
-        logging.debug("Updating source code with new docstrings.")
+        logging.debug("Updating source code with validated docstrings.")
         for entry in documentation_entries:
             for node in ast.walk(self.tree):
                 if isinstance(node, ast.FunctionDef) and node.name == entry['function_name']:
-                    self.insert_docstring(node, entry['docstring'])
+                    # Validate docstring before updating
+                    parsed_docstring, validation_errors = parse_and_validate_docstring(
+                        entry['docstring']
+                    )
+                    if parsed_docstring:
+                        self.insert_docstring(node, entry['docstring'])
+                    else:
+                        log_error(
+                            f"Skipping invalid docstring for {node.name}: {validation_errors}"
+                        )
 
         updated_code = ast.unparse(self.tree)
         logging.info("Source code updated with new docstrings.")

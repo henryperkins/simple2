@@ -2,28 +2,29 @@ import asyncio
 import hashlib
 import os
 import time
-import json  # Import json module
+import json
 from typing import Dict, Tuple, Optional, List
 import ast
 from dotenv import load_dotenv
-from api_client import AzureOpenAIClient
-from config import AzureOpenAIConfig  # Import AzureOpenAIConfig
+from api.api_client import AzureOpenAIClient
+from core.config import AzureOpenAIConfig
 from docs import DocStringManager
-from cache import Cache
-from logger import log_info, log_error, log_debug, log_warning
-from monitoring import SystemMonitor
+from core.cache import Cache
+from core.logger import log_info, log_error, log_debug, log_warning
+from core.monitoring import SystemMonitor
 from extract.extraction_manager import ExtractionManager
 from docstring_utils import (
     analyze_code_element_docstring,
     parse_docstring,
     validate_docstring,
 )
-from response_parser import ResponseParser
-from utils import handle_exceptions  # Import the decorator
+from api.response_parser import ResponseParser
+from core.utils import handle_exceptions
+from docstring_utils import DocstringValidator  # Assuming this is where the validator is defined
+from core.metrics import Metrics  # Ensure this import is added
 
 # Load environment variables from .env file
 load_dotenv()
-
 
 class InteractionHandler:
     """
@@ -63,6 +64,8 @@ class InteractionHandler:
         self.semaphore = asyncio.Semaphore(batch_size)
         self.extraction_manager = ExtractionManager()
         self.response_parser = ResponseParser()
+        self.validator = DocstringValidator()  # Add validator instance
+        self.metrics = Metrics()  # Add metrics instance
         log_info("Interaction Handler initialized with batch processing capability")
 
     @handle_exceptions(log_error)
@@ -149,12 +152,6 @@ class InteractionHandler:
         updated_code = self.docstring_manager.update_source_code(documentation_entries)
         documentation = self.docstring_manager.generate_markdown_documentation(documentation_entries)
 
-        # Save the generated markdown documentation using DocumentationManager
-        # Ensure DocumentationManager is imported or defined
-        # doc_manager = DocumentationManager(output_dir="generated_docs")
-        # output_file = "generated_docs/documentation.md"
-        # doc_manager.save_documentation(documentation, output_file)
-
         # Log final metrics
         total_items = len(functions) + len(classes)
         self.monitor.log_batch_completion(total_items)
@@ -167,7 +164,7 @@ class InteractionHandler:
         self, source_code: str, function_info: Dict
     ) -> Tuple[Optional[str], Optional[Dict]]:
         """
-        Process a single function with enhanced error handling and monitoring.
+        Process a function with complexity metrics.
 
         Args:
             source_code (str): The source code containing the function.
@@ -177,128 +174,107 @@ class InteractionHandler:
             Tuple[Optional[str], Optional[Dict]]: The generated docstring and metadata, or None if failed.
         """
         async with self.semaphore:
-            func_name = function_info.get("name", "unknown")
-            start_time = time.time()
+            try:
+                if not function_info or 'name' not in function_info:
+                    log_error("Invalid function info provided")
+                    return None, None
 
-            # Check cache first
-            cache_key = self._generate_cache_key(function_info["node"])
-            cached_response = await self.cache.get_cached_docstring(cache_key)
+                func_name = function_info.get("name", "unknown")
+                
+                if 'node' not in function_info:
+                    log_error(f"Missing AST node for function: {func_name}")
+                    return None, None
 
-            if cached_response:
-                # Validate cached response
-                parsed_cached = self.response_parser.parse_json_response(
-                    json.dumps(cached_response)
+                # Calculate complexity metrics
+                complexity_score = self.metrics.calculate_complexity(function_info['node'])
+                maintainability_index = self.metrics.calculate_maintainability_index(
+                    function_info['node']
                 )
-                if parsed_cached and validate_docstring(parsed_cached):
-                    log_info(f"Using valid cached docstring for {func_name}")
-                    self.monitor.log_cache_hit(func_name)
-                    return parsed_cached["docstring"], cached_response
-                else:
-                    log_warning(
-                        f"Invalid cached docstring found for {func_name}, will regenerate"
+                halstead_metrics = self.metrics.calculate_halstead_metrics(
+                    function_info['node']
+                )
+                
+                # Update function info with metrics
+                function_info.update({
+                    'complexity_score': complexity_score,
+                    'maintainability_index': maintainability_index,
+                    'halstead_metrics': halstead_metrics
+                })
+                
+                log_debug(
+                    f"Calculated metrics for {func_name}: "
+                    f"complexity={complexity_score}, "
+                    f"maintainability={maintainability_index}"
+                )
+
+                cache_key = self._generate_cache_key(function_info['node'])
+                
+                # Validate existing docstring if present
+                if function_info.get("docstring"):
+                    parsed_existing, validation_errors = parse_and_validate_docstring(
+                        function_info["docstring"]
                     )
-                    await self.cache.invalidate_by_tags([cache_key])
+                    if parsed_existing and not validation_errors:
+                        log_info(f"Valid existing docstring found for {func_name}")
+                        return function_info["docstring"], parsed_existing
 
-            # Check existing docstring
-            existing_docstring = function_info.get("docstring")
-            if existing_docstring and validate_docstring(
-                parse_docstring(existing_docstring)
-            ):
-                log_info(f"Existing complete docstring found for {func_name}")
-                return existing_docstring, None
-
-            # Attempt to generate new docstring
-            max_attempts = 3
-            for attempt in range(max_attempts):
-                try:
-                    response = await self.client.generate_docstring(
-                        func_name=function_info["name"],
-                        params=function_info["args"],
-                        return_type=function_info["returns"],
-                        complexity_score=function_info.get("complexity_score", 0),
-                        existing_docstring=function_info["docstring"],
-                        decorators=function_info["decorators"],
-                        exceptions=function_info.get("exceptions", []),
-                    )
-
-                    if not response:
-                        log_error(
-                            f"Failed to generate docstring for {func_name} (attempt {attempt + 1}/{max_attempts})"
-                        )
-                        continue
-
-                    # Parse and validate the response
-                    parsed_response = self.response_parser.parse_json_response(
-                        json.dumps(response["content"])
-                    )
-
-                    if not parsed_response:
-                        log_error(
-                            f"Failed to parse response for {func_name} (attempt {attempt + 1}/{max_attempts})"
-                        )
-                        continue
-
-                    # Validate the generated docstring
-                    if validate_docstring(parsed_response["docstring"]):
-                        # Cache successful generation
-                        await self.cache.save_docstring(
-                            cache_key,
-                            {
-                                "docstring": parsed_response["docstring"],
-                                "metadata": {
-                                    "timestamp": time.time(),
-                                    "function_name": func_name,
-                                    "summary": parsed_response.get("summary", ""),
-                                    "complexity_score": parsed_response.get(
-                                        "complexity_score", 0
-                                    ),
-                                },
-                            },
-                            tags=[f"func:{func_name}"],
-                        )
-
-                        # Log success metrics
-                        self.monitor.log_operation_complete(
-                            function_name=func_name,
-                            execution_time=time.time() - start_time,
-                            tokens_used=response["usage"]["total_tokens"],
-                        )
-
-                        log_info(
-                            f"Successfully generated and cached docstring for {func_name}"
-                        )
-                        return parsed_response["docstring"], parsed_response
-
+                # Check cache with validation
+                cached_response = await self.cache.get_cached_docstring(cache_key)
+                if cached_response:
+                    is_valid, validation_errors = self.validator.validate_docstring(cached_response)
+                    if is_valid:
+                        log_info(f"Using valid cached docstring for {func_name}")
+                        return cached_response["docstring"], cached_response
                     else:
                         log_warning(
-                            f"Generated docstring incomplete for {func_name} (attempt {attempt + 1}/{max_attempts})"
+                            f"Invalid cached docstring for {func_name}, errors: {validation_errors}"
                         )
-                        self.monitor.log_docstring_changes(
-                            action="incomplete_generated",
-                            function_name=func_name
+                        await self.cache.invalidate_by_tags([cache_key])
+
+                # Generate new docstring with validation
+                for attempt in range(self.config.max_retries):
+                    try:
+                        response = await self.client.generate_docstring(
+                            func_name=function_info["name"],
+                            params=function_info["args"],
+                            return_type=function_info["returns"],
+                            complexity_score=function_info.get("complexity_score", 0),
+                            maintainability_index=function_info.get("maintainability_index", 0),
+                            halstead_metrics=function_info.get("halstead_metrics", {}),
+                            existing_docstring=function_info["docstring"],
+                            decorators=function_info["decorators"],
+                            exceptions=function_info.get("exceptions", []),
                         )
 
-                except asyncio.TimeoutError:
-                    log_error(
-                        f"Timeout generating docstring for {func_name} (attempt {attempt + 1}/{max_attempts})"
-                    )
-                    await asyncio.sleep(2**attempt)  # Exponential backoff
-                except Exception as e:
-                    log_error(
-                        f"Error generating docstring for {func_name} (attempt {attempt + 1}/{max_attempts}): {e}"
-                    )
-                    await asyncio.sleep(2**attempt)
+                        if response and response.get("content"):
+                            # Validate generated docstring
+                            is_valid, validation_errors = self.validator.validate_docstring(
+                                response["content"]
+                            )
+                            
+                            if is_valid:
+                                # Cache valid docstring
+                                await self.cache.save_docstring(
+                                    cache_key,
+                                    response["content"],
+                                    tags=[f"func:{func_name}"]
+                                )
+                                return response["content"]["docstring"], response["content"]
+                            else:
+                                log_warning(
+                                    f"Generated docstring validation failed for {func_name}: "
+                                    f"{validation_errors}"
+                                )
 
-            # If all attempts fail
-            log_error(
-                f"Failed to generate valid docstring for {func_name} after {max_attempts} attempts"
-            )
-            self.monitor.log_request(
-                func_name=func_name,
-                status="max_attempts_exceeded",
-                error="Failed to generate valid docstring"
-            )
-            return None, None
+                    except Exception as e:
+                        log_error(f"Error generating docstring (attempt {attempt + 1}): {e}")
+
+                log_error(f"Failed to generate valid docstring for {func_name}")
+                return None, None
+
+            except Exception as e:
+                log_error(f"Error processing function {func_name}: {e}")
+                return None, None
 
     @handle_exceptions(log_error)
     async def process_class(
@@ -332,15 +308,23 @@ class InteractionHandler:
             return response["content"].get("docstring"), response["content"]
         return None, None
 
-    def _generate_cache_key(self, function_node: ast.FunctionDef) -> str:
+    def _generate_cache_key(self, function_node: Optional[ast.FunctionDef]) -> str:
         """
         Generate a unique cache key for a function.
 
         Args:
-            function_node (ast.FunctionDef): The function node to generate a key for.
+            function_node (Optional[ast.FunctionDef]): The function node to generate a key for.
 
         Returns:
             str: The generated cache key.
         """
-        func_signature = f"{function_node.name}({', '.join(arg.arg for arg in function_node.args.args)})"
-        return hashlib.md5(func_signature.encode()).hexdigest()
+        if not function_node or not isinstance(function_node, ast.FunctionDef):
+            # Fallback to generate a basic hash if node is not available
+            return hashlib.md5(str(time.time()).encode()).hexdigest()
+            
+        try:
+            func_signature = f"{function_node.name}({', '.join(arg.arg for arg in function_node.args.args)})"
+            return hashlib.md5(func_signature.encode()).hexdigest()
+        except Exception as e:
+            log_error(f"Error generating cache key: {e}")
+            return hashlib.md5(str(time.time()).encode()).hexdigest()

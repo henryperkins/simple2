@@ -11,9 +11,9 @@ Author: Development Team
 
 import ast
 from typing import List, Dict, Any, Optional
-from logger import log_info, log_error, log_debug
+from core.logger import log_info, log_error, log_debug
 from extract.base import BaseExtractor
-from utils import handle_exceptions  # Import the decorator from utils
+from core.utils import handle_exceptions  # Import the decorator from utils
 
 
 class ClassExtractor(BaseExtractor):

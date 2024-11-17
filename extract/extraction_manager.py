@@ -1,6 +1,6 @@
 import ast
 from typing import Dict, Any, Optional, List, Union, Tuple
-from logger import log_info, log_error, log_debug
+from core.logger import log_info, log_error, log_debug
 
 class ExtractionManager:
     """
@@ -30,7 +30,9 @@ class ExtractionManager:
                         # Check if this is an exception class
                         is_exception = self._is_exception_class(node)
                         metadata = self._extract_class_metadata(node, is_exception)
-                        classes.append(metadata)
+                        if metadata:
+                            metadata['node'] = node  # Include the AST node
+                            classes.append(metadata)
                         log_debug(f"Extracted {'exception ' if is_exception else ''}class: {node.name} with metadata: {metadata}")
                     except Exception as e:
                         log_error(f"Error extracting class metadata for {getattr(node, 'name', '<unknown>')}: {e}")
@@ -39,7 +41,9 @@ class ExtractionManager:
                 elif isinstance(node, ast.FunctionDef):
                     try:
                         metadata = self._extract_function_metadata(node)
-                        functions.append(metadata)
+                        if metadata:
+                            metadata['node'] = node  # Include the AST node
+                            functions.append(metadata)
                         log_debug(f"Extracted function: {node.name} with metadata: {metadata}")
                     except Exception as e:
                         log_error(f"Error extracting function metadata for {getattr(node, 'name', '<unknown>')}: {e}")
@@ -51,9 +55,12 @@ class ExtractionManager:
                 'functions': functions
             }
             
+        except SyntaxError as e:
+            log_error(f"Syntax error in source code: {e}")
+            return {'classes': [], 'functions': []}
         except Exception as e:
             log_error(f"Failed to extract metadata: {str(e)}")
-            raise
+            return {'classes': [], 'functions': []}
 
     def _is_exception_class(self, node: ast.ClassDef) -> bool:
         """
