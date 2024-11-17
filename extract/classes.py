@@ -15,6 +15,7 @@ from logger import log_info, log_error, log_debug
 from extract.base import BaseExtractor
 from utils import handle_exceptions  # Import the decorator from utils
 
+
 class ClassExtractor(BaseExtractor):
     """
     Extract class definitions and their metadata from Python source code.
@@ -24,7 +25,9 @@ class ClassExtractor(BaseExtractor):
     """
 
     @handle_exceptions(log_error)
-    def extract_classes(self, source_code: Optional[str] = None) -> List[Dict[str, Any]]:
+    def extract_classes(
+        self, source_code: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
         """
         Extract all class definitions and their metadata from the source code.
 
@@ -70,11 +73,17 @@ class ClassExtractor(BaseExtractor):
         log_debug(f"Extracting details for class: {node.name}")
 
         details = self._extract_common_details(node)
-        details.update({
-            'bases': [ast.unparse(base) for base in node.bases],
-            'methods': [self.extract_method_details(n) for n in node.body if isinstance(n, ast.FunctionDef)],
-            'attributes': self.extract_class_attributes(node)
-        })
+        details.update(
+            {
+                "bases": [ast.unparse(base) for base in node.bases],
+                "methods": [
+                    self.extract_method_details(n)
+                    for n in node.body
+                    if isinstance(n, ast.FunctionDef)
+                ],
+                "attributes": self.extract_class_attributes(node),
+            }
+        )
         log_debug(f"Successfully extracted details for class {node.name}")
         return details
 
@@ -89,14 +98,14 @@ class ClassExtractor(BaseExtractor):
             dict: A dictionary containing method details.
         """
         return {
-            'name': node.name,
-            'parameters': self.extract_parameters(node),
-            'return_type': self.extract_return_type(node),
-            'docstring': self.extract_docstring(node),
-            'decorators': self._extract_decorators(node),
-            'exceptions': self._detect_exceptions(node),
-            'lineno': node.lineno,
-            'body_summary': self.get_body_summary(node)
+            "name": node.name,
+            "parameters": self.extract_parameters(node),
+            "return_type": self.extract_return_type(node),
+            "docstring": self.extract_docstring(node),
+            "decorators": self._extract_decorators(node),
+            "exceptions": self._detect_exceptions(node),
+            "lineno": node.lineno,
+            "body_summary": self.get_body_summary(node),
         }
 
     def extract_parameters(self, node: ast.FunctionDef) -> List[Dict[str, Any]]:
@@ -112,15 +121,17 @@ class ClassExtractor(BaseExtractor):
         parameters = []
         for arg in node.args.args:
             param_info = {
-                'name': arg.arg,
-                'type': self._get_type_annotation(arg),
-                'optional': self._has_default(arg, node),
-                'default_value': self._get_default_value(arg, node)
+                "name": arg.arg,
+                "type": self._get_type_annotation(arg),
+                "optional": self._has_default(arg, node),
+                "default_value": self._get_default_value(arg, node),
             }
             parameters.append(param_info)
         return parameters
 
-    def extract_class_attributes(self, class_node: ast.ClassDef) -> List[Dict[str, Any]]:
+    def extract_class_attributes(
+        self, class_node: ast.ClassDef
+    ) -> List[Dict[str, Any]]:
         """
         Extract attributes from a class node.
 
@@ -136,9 +147,9 @@ class ClassExtractor(BaseExtractor):
                 for target in node.targets:
                     if isinstance(target, ast.Name):
                         attr_info = {
-                            'name': target.id,
-                            'type': self._infer_type(node.value),
-                            'lineno': node.lineno
+                            "name": target.id,
+                            "type": self._infer_type(node.value),
+                            "lineno": node.lineno,
                         }
                         attributes.append(attr_info)
         return attributes

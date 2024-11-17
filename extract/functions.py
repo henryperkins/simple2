@@ -15,6 +15,7 @@ from logger import log_info, log_error, log_debug
 from extract.base import BaseExtractor
 from utils import handle_exceptions  # Import the decorator from utils
 
+
 class FunctionExtractor(BaseExtractor):
     """
     Extract function definitions and their metadata from Python source code.
@@ -24,7 +25,9 @@ class FunctionExtractor(BaseExtractor):
     """
 
     @handle_exceptions(log_error)
-    def extract_functions(self, source_code: Optional[str] = None) -> List[Dict[str, Any]]:
+    def extract_functions(
+        self, source_code: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
         """
         Extract all function definitions and their metadata from the source code.
 
@@ -46,7 +49,7 @@ class FunctionExtractor(BaseExtractor):
                 if function_info:
                     functions.append(function_info)
                     log_info(f"Extracted function '{node.name}' with metadata.")
-        
+
         log_debug(f"Total functions extracted: {len(functions)}")
         return functions
 
@@ -67,13 +70,15 @@ class FunctionExtractor(BaseExtractor):
         log_debug(f"Extracting details for function: {node.name}")
 
         details = self._extract_common_details(node)
-        details.update({
-            'args': self.extract_parameters(node),
-            'return_type': self.extract_return_type(node),
-            'decorators': self._extract_decorators(node),
-            'exceptions': self._detect_exceptions(node),
-            'body_summary': self.get_body_summary(node)
-        })
+        details.update(
+            {
+                "args": self.extract_parameters(node),
+                "return_type": self.extract_return_type(node),
+                "decorators": self._extract_decorators(node),
+                "exceptions": self._detect_exceptions(node),
+                "body_summary": self.get_body_summary(node),
+            }
+        )
         log_debug(f"Successfully extracted details for function {node.name}")
         return details
 

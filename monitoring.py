@@ -275,3 +275,25 @@ class SystemMonitor:
             log_info(f"Metrics exported to: {filepath}")
         except Exception as e:
             log_error(f"Failed to export metrics: {str(e)}")
+
+    def _get_context_from_graph(self, some_dict: Dict[str, Any]) -> None:
+        """
+        Process the graph context from the provided dictionary.
+
+        Args:
+            some_dict (Dict[str, Any]): Dictionary containing graph data.
+        """
+        try:
+            # Safely access 'node' using .get() to avoid KeyError
+            node = some_dict.get('node')
+            
+            if node is not None:
+                # Proceed with processing the node
+                log_info(f"Processing node: {node}")
+                # Add your processing logic here
+            else:
+                # Handle the absence of 'node'
+                log_error("Key 'node' is missing in the provided dictionary.")
+                log_debug(f"Dictionary contents: {some_dict}")
+        except Exception as e:
+            log_error(f"Error processing graph context: {str(e)}")

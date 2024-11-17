@@ -14,9 +14,11 @@ import logging
 # Load environment variables
 load_dotenv()
 
+
 @dataclass
 class AzureOpenAIConfig:
     """Configuration settings for Azure OpenAI."""
+
     endpoint: str
     api_key: str
     api_version: str
@@ -29,10 +31,10 @@ class AzureOpenAIConfig:
     request_timeout: int
 
     @classmethod
-    def from_env(cls) -> 'AzureOpenAIConfig':
+    def from_env(cls) -> "AzureOpenAIConfig":
         """
         Create configuration from environment variables.
-        
+
         Returns:
             AzureOpenAIConfig: Configuration instance
         """
@@ -46,13 +48,13 @@ class AzureOpenAIConfig:
             temperature=float(os.getenv("TEMPERATURE", 0.7)),
             max_retries=int(os.getenv("MAX_RETRIES", 3)),
             retry_delay=int(os.getenv("RETRY_DELAY", 2)),
-            request_timeout=int(os.getenv("REQUEST_TIMEOUT", 30))
+            request_timeout=int(os.getenv("REQUEST_TIMEOUT", 30)),
         )
 
     def validate(self) -> bool:
         """
         Validate the configuration settings.
-        
+
         Returns:
             bool: True if configuration is valid
         """
@@ -60,12 +62,13 @@ class AzureOpenAIConfig:
             self.endpoint,
             self.api_key,
             self.api_version,
-            self.deployment_name
+            self.deployment_name,
         ]
         missing_fields = [field for field in required_fields if not field]
         if missing_fields:
             logging.error(f"Missing configuration fields: {missing_fields}")
         return not missing_fields
+
 
 # Create default configuration instance
 try:

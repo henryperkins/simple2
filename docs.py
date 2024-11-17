@@ -56,7 +56,7 @@ class DocStringManager:
             log_error(f"Invalid docstring for function '{node.name}'. Expected a string.")
             return
         logging.debug(f"Inserting docstring into function '{node.name}'.")
-        node.body.insert(0, ast.Expr(value=ast.Str(s=docstring)))
+        node.body.insert(0, ast.Expr(value=ast.Constant(value=docstring)))
 
     @handle_exceptions(log_error)
     def update_source_code(self, documentation_entries: List[Dict]) -> str:
@@ -110,7 +110,7 @@ class DocStringManager:
             if 'function_name' in entry and 'docstring' in entry:
                 markdown_gen.add_section(
                     f"Function: {entry['function_name']}",
-                    entry['docstring']
+                    entry['docstring'] or "No documentation available"
                 )
 
         markdown = markdown_gen.generate_markdown()
@@ -281,9 +281,9 @@ class DocumentationManager:
         """
         logging.debug(f"Processing class: {node.name}")
         try:
-            class_doc = ast.get_docstring(node)
+            class_doc = ast.get_docstring(node) or "No documentation available"
             markdown_gen.add_section(f"Class: {node.name}", 
-                                    class_doc if class_doc else "No documentation available")
+                                    class_doc)
             
             # Process class methods
             for item in node.body:
@@ -304,7 +304,7 @@ class DocumentationManager:
         """
         logging.debug(f"Processing function: {node.name}")
         try:
-            func_doc = ast.get_docstring(node)
+            func_doc = ast.get_docstring(node) or "No documentation available"
             section_title = f"{'Method' if is_method else 'Function'}: {node.name}"
             if is_method:
                 section_title = f"Method: {class_name}.{node.name}"
@@ -315,7 +315,7 @@ class DocumentationManager:
 
             content = [
                 f"```python\n{signature}\n```\n",
-                func_doc if func_doc else "No documentation available"
+                func_doc
             ]
             
             markdown_gen.add_section(section_title, "\n".join(content))
