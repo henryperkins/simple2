@@ -8,13 +8,16 @@ to generate docstrings with proper async support and error handling.
 import asyncio
 from typing import List, Tuple, Optional, Dict, Any
 from openai import AsyncAzureOpenAI
-from openai.types.error import OpenAIError
-from cache import Cache
-from config import AzureOpenAIConfig
+from openai import OpenAIError
+from core.cache import Cache
+from core.config import AzureOpenAIConfig
 from api.token_management import TokenManager
-from api_interaction import APIInteraction
-from logger import log_info, log_error, log_debug
-from exceptions import TooManyRetriesError
+from api.api_interaction import APIInteraction
+from core.logger import log_info, log_error, log_debug
+from core.exceptions import TooManyRetriesError
+from core.monitoring import SystemMonitor
+
+
 
 class AzureOpenAIClient:
     """
@@ -57,7 +60,8 @@ class AzureOpenAIClient:
         self.api_interaction = APIInteraction(
             self.config,
             self.token_manager,
-            self.cache
+            self.cache,
+            SystemMonitor()  # Pass the SystemMonitor instance
         )
 
         log_info("Azure OpenAI client initialized successfully")
@@ -147,7 +151,7 @@ class AzureOpenAIClient:
         Returns:
             List[Optional[Dict[str, Any]]]: List of generated docstrings and metadata
         """
-        batch_size = batch_size or self.config.batch_size
+        batch_size = batch_size or getattr(self.config, 'batch_size', 10)
         results = []
         
         for i in range(0, len(functions), batch_size):

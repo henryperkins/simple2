@@ -66,6 +66,7 @@ class ResponseParser:
 
             # Validate against JSON schema
             validate(instance=response_json, schema=JSON_SCHEMA)
+            log_info("Response validated successfully against JSON schema.")
 
             # Extract fields
             parsed_response = {
@@ -83,6 +84,7 @@ class ResponseParser:
         except ValidationError as e:
             log_error(f"Response validation error: {e.message}")
             log_error(f"Schema path: {' -> '.join(str(p) for p in e.schema_path)}")
+            log_debug(f"Invalid response content: {response}")
             return None
         except Exception as e:
             log_error(f"Unexpected error during JSON response parsing: {e}")

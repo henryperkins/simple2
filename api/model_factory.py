@@ -1,7 +1,11 @@
 # model_factory.py
 from typing import Optional, Dict
-from base_client import BaseAIClient
+from api.base_client import BaseAIClient
 from core.config import AIModelConfig
+from api.models.api_client import AzureOpenAIClient
+from api.models.openai_model import OpenAIClient
+from api.models.claude_model import ClaudeClient
+from api.models.gemini_model import GeminiClient
 
 class AIClientFactory:
     """Factory for creating AI model clients with unified interface."""

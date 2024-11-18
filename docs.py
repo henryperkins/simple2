@@ -19,7 +19,7 @@ import logging
 from typing import Optional, Dict, Any, List, Union
 from pathlib import Path
 from datetime import datetime
-from docstring_utils import parse_docstring, validate_docstring, parse_and_validate_docstring
+from docstring_utils import parse_docstring, parse_and_validate_docstring
 from core.logger import log_error
 from core.utils import handle_exceptions  # Import the decorator
 from docstring_utils import DocstringValidator  # Assuming this is where the validator is defined
@@ -136,6 +136,7 @@ class DocStringManager:
         logging.info("Markdown documentation generated.")
         return markdown
     
+
 class MarkdownGenerator:
     """
     Generates markdown documentation from Python code elements.
@@ -197,6 +198,7 @@ class MarkdownGenerator:
         """
         logging.debug("Generating final markdown document.")
         return "\n".join(self.output)
+
 
 class DocumentationManager:
     """

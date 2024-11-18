@@ -10,8 +10,7 @@ Author: Development Team
 
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import Dict, List, Optional, Tuple
-
+from typing import Dict, List, Optional, Tuple, Union
 import tiktoken
 
 from core.logger import log_debug, log_error, log_info
@@ -96,6 +95,10 @@ class TokenManager:
         # Get model configuration
         self.model_config = self.MODEL_LIMITS.get(self.model, self.MODEL_LIMITS["gpt-4"])
         log_debug(f"TokenManager initialized for model: {self.model}, deployment: {deployment_name}")
+
+        # Initialize token usage tracking
+        self.total_prompt_tokens = 0
+        self.total_completion_tokens = 0
 
     @lru_cache(maxsize=128)
     def estimate_tokens(self, text: str) -> int:
@@ -199,11 +202,35 @@ class TokenManager:
             estimated_cost=prompt_cost + completion_cost
         )
 
+    def track_request(self, request_tokens: int, response_tokens: int) -> None:
+        """
+        Track token usage for a request.
+
+        Args:
+            request_tokens (int): Number of tokens in the request
+            response_tokens (int): Number of tokens in the response
+        """
+        self.total_prompt_tokens += request_tokens
+        self.total_completion_tokens += response_tokens
+        log_debug(f"Tracked request: {request_tokens} prompt tokens, {response_tokens} completion tokens")
+
+    def get_usage_stats(self) -> Dict[str, int]:
+        """
+        Get current token usage statistics.
+
+        Returns:
+            Dict[str, int]: Total prompt and completion tokens.
+        """
+        return {
+            "total_prompt_tokens": int(self.total_prompt_tokens),
+            "total_completion_tokens": int(self.total_completion_tokens)
+        }
+
     def validate_request(
         self,
         prompt: str,
         max_completion_tokens: Optional[int] = None
-    ) -> Tuple[bool, Dict[str, int], str]:
+    ) -> Tuple[bool, Dict[str, Union[int, float]], str]:
         """
         Validate if request is within token limits.
 
@@ -212,7 +239,7 @@ class TokenManager:
             max_completion_tokens (Optional[int]): Maximum allowed completion tokens
 
         Returns:
-            Tuple[bool, Dict[str, int], str]: 
+            Tuple[bool, Dict[str, Union[int, float]], str]: 
                 - Boolean indicating if request is valid
                 - Dictionary of token metrics
                 - Status message

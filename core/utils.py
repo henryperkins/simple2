@@ -1,13 +1,13 @@
 import os
 import ast
-import time
 import fnmatch
 import hashlib
 import json
 import asyncio
 from datetime import datetime
 from typing import Dict, List, Any, Optional
-from logger import log_info, log_error, log_debug
+from core.logger import log_info, log_error, log_debug
+
 
 def generate_hash(content: str) -> str:
     """
@@ -23,6 +23,8 @@ def generate_hash(content: str) -> str:
     hash_value = hashlib.md5(content.encode()).hexdigest()
     log_debug(f"Generated hash: {hash_value}")
     return hash_value
+
+
 def handle_exceptions(log_func):
     """
     Decorator to handle exceptions and log errors.
@@ -39,12 +41,13 @@ def handle_exceptions(log_func):
                 node = kwargs.get('node', None)
                 if not node and args:
                     node = next((arg for arg in args if isinstance(arg, ast.AST)), None)
-                
+
                 node_name = getattr(node, 'name', '<unknown>') if node else '<unknown>'
                 log_func(f"Error in {func.__name__} for node {node_name}: {e}")
                 return None  # Return a default value or handle as needed
         return wrapper
     return decorator
+
 
 async def load_json_file(filepath: str, max_retries: int = 3) -> Dict:
     """
@@ -81,10 +84,11 @@ async def load_json_file(filepath: str, max_retries: int = 3) -> Dict:
                 raise
         # Exponential backoff before retrying
         await asyncio.sleep(2 ** attempt)
-    
+
     # If all retries fail, log an error and return an empty dictionary
     log_error(f"Failed to load JSON file after {max_retries} attempts: {filepath}")
     return {}
+
 
 def ensure_directory(directory_path: str) -> None:
     """
@@ -96,6 +100,7 @@ def ensure_directory(directory_path: str) -> None:
     log_debug(f"Ensuring directory exists: {directory_path}")
     os.makedirs(directory_path, exist_ok=True)
     log_info(f"Directory ensured: {directory_path}")
+
 
 def validate_file_path(filepath: str, extension: str = '.py') -> bool:
     """
@@ -111,6 +116,7 @@ def validate_file_path(filepath: str, extension: str = '.py') -> bool:
     is_valid = os.path.isfile(filepath) and filepath.endswith(extension)
     log_debug(f"File path validation for '{filepath}' with extension '{extension}': {is_valid}")
     return is_valid
+
 
 def create_error_result(error_type: str, error_message: str) -> Dict[str, str]:
     """
@@ -131,6 +137,7 @@ def create_error_result(error_type: str, error_message: str) -> Dict[str, str]:
     log_debug(f"Created error result: {error_result}")
     return error_result
 
+
 def add_parent_info(tree: ast.AST) -> None:
     """
     Add parent node information to each node in an AST.
@@ -146,6 +153,7 @@ def add_parent_info(tree: ast.AST) -> None:
         for child in ast.iter_child_nodes(parent):
             setattr(child, 'parent', parent)
     log_info("Parent information added to AST nodes.")
+
 
 def get_file_stats(filepath: str) -> Dict[str, Any]:
     """
@@ -168,6 +176,7 @@ def get_file_stats(filepath: str) -> Dict[str, Any]:
     }
     log_info(f"File statistics for '{filepath}': {file_stats}")
     return file_stats
+
 
 def filter_files(
     directory: str,
@@ -196,6 +205,7 @@ def filter_files(
                     matches.append(filepath)
     log_info(f"Filtered files: {matches}")
     return matches
+
 
 def get_all_files(directory, exclude_dirs=None):
     """

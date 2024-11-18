@@ -104,14 +104,14 @@ class ExtractionManager:
             # For regular classes, extract additional metadata
             if not is_exception:
                 metadata.update({
-                    'methods': self._extract_methods(node),
-                    'bases': [self._format_base(base) for base in node.bases],
-                    'decorators': self._extract_decorators(node)
+                    'methods': self._extract_methods(node),  # Use list directly
+                    'bases': [self._format_base(base) for base in node.bases],  # Use list directly
+                    'decorators': self._extract_decorators(node)  # Use list directly
                 })
             # For exception classes, extract minimal metadata
             else:
                 metadata.update({
-                    'bases': [self._format_base(base) for base in node.bases],
+                    'bases': [self._format_base(base) for base in node.bases],  # Use list directly
                     'error_code': self._extract_error_code(node)
                 })
 

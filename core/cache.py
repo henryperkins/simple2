@@ -15,7 +15,7 @@ from typing import Optional, Dict, Any, List, Union
 import redis
 from dataclasses import dataclass
 import asyncio
-from logger import log_info, log_error, log_debug
+from core.logger import log_info, log_error, log_debug
 from docstring_utils import DocstringValidator  # Ensure this import is added
 
 @dataclass

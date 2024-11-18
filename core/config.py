@@ -13,6 +13,7 @@ import logging
 # Load environment variables
 load_dotenv()
 
+
 @dataclass
 class AIModelConfig:
     """Base configuration for all AI models."""
@@ -22,6 +23,7 @@ class AIModelConfig:
     request_timeout: int
     max_retries: int
     retry_delay: int
+
 
 @dataclass
 class AzureOpenAIConfig(AIModelConfig):
@@ -54,7 +56,24 @@ class AzureOpenAIConfig(AIModelConfig):
             request_timeout=int(os.getenv("REQUEST_TIMEOUT", "30")),
             max_tokens_per_minute=int(os.getenv("MAX_TOKENS_PER_MINUTE", "150000")),
             token_buffer=int(os.getenv("TOKEN_BUFFER", "100")),
+            docstring_functions={}
         )
+
+    def validate(self) -> bool:
+        """Validate the configuration settings.
+
+        Returns:
+            bool: True if configuration is valid, False otherwise.
+        """
+        required_fields = [
+            self.endpoint, self.api_key, self.api_version, self.deployment_name
+        ]
+        missing_fields = [field for field in required_fields if not field]
+        if missing_fields:
+            logging.error(f"Missing required configuration fields: {missing_fields}")
+            return False
+        return True
+
 
 @dataclass
 class OpenAIConfig(AIModelConfig):
@@ -68,7 +87,7 @@ class OpenAIConfig(AIModelConfig):
         """Create configuration from environment variables."""
         return cls(
             model_type="openai",
-            api_key=os.getenv("OPENAI_API_KEY"),
+            api_key=os.getenv("OPENAI_API_KEY", ""),
             organization_id=os.getenv("OPENAI_ORG_ID"),
             model_name=os.getenv("OPENAI_MODEL_NAME", "gpt-4"),
             max_tokens=int(os.getenv("OPENAI_MAX_TOKENS", "4096")),
@@ -77,6 +96,7 @@ class OpenAIConfig(AIModelConfig):
             max_retries=int(os.getenv("OPENAI_MAX_RETRIES", "3")),
             retry_delay=int(os.getenv("OPENAI_RETRY_DELAY", "2"))
         )
+
 
 @dataclass
 class ClaudeConfig(AIModelConfig):
@@ -89,7 +109,7 @@ class ClaudeConfig(AIModelConfig):
         """Create configuration from environment variables."""
         return cls(
             model_type="claude",
-            api_key=os.getenv("CLAUDE_API_KEY"),
+            api_key=os.getenv("CLAUDE_API_KEY", ""),
             model_name=os.getenv("CLAUDE_MODEL_NAME", "claude-3-opus-20240229"),
             max_tokens=int(os.getenv("CLAUDE_MAX_TOKENS", "100000")),
             temperature=float(os.getenv("CLAUDE_TEMPERATURE", "0.7")),
@@ -97,6 +117,7 @@ class ClaudeConfig(AIModelConfig):
             max_retries=int(os.getenv("CLAUDE_MAX_RETRIES", "3")),
             retry_delay=int(os.getenv("CLAUDE_RETRY_DELAY", "2"))
         )
+
 
 @dataclass
 class GeminiConfig(AIModelConfig):
@@ -110,7 +131,7 @@ class GeminiConfig(AIModelConfig):
         """Create configuration from environment variables."""
         return cls(
             model_type="gemini",
-            api_key=os.getenv("GOOGLE_API_KEY"),
+            api_key=os.getenv("GOOGLE_API_KEY", ""),
             project_id=os.getenv("GOOGLE_PROJECT_ID"),
             model_name=os.getenv("GEMINI_MODEL_NAME", "gemini-pro"),
             max_tokens=int(os.getenv("GEMINI_MAX_TOKENS", "2048")),
@@ -120,11 +141,12 @@ class GeminiConfig(AIModelConfig):
             retry_delay=int(os.getenv("GEMINI_RETRY_DELAY", "2"))
         )
 
+
 # Create default configuration instances
 try:
     azure_config = AzureOpenAIConfig.from_env()
     openai_config = OpenAIConfig.from_env()
     claude_config = ClaudeConfig.from_env()
     gemini_config = GeminiConfig.from_env()
-except ValueError as e:
-    logging.error(f"Failed to create configuration: {e}")
+except ValueError as err:
+    logging.error(f"Failed to create configuration: {err}")

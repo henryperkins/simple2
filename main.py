@@ -1,9 +1,10 @@
 """
 Main Module for Docstring Workflow System
 
-This module serves as the entry point for the docstring generation workflow using Azure OpenAI.
-It handles command-line arguments, initializes necessary components, and orchestrates the
-processing of Python source files to generate and update docstrings.
+This module serves as the entry point for the docstring generation workflow
+using Azure OpenAI. It handles command-line arguments, initializes necessary
+components, and orchestrates the processing of Python source files to generate
+and update docstrings.
 
 Version: 1.0.1
 Author: Development Team
@@ -12,33 +13,23 @@ Author: Development Team
 import argparse
 import asyncio
 import os
+import aiofiles
 import shutil
 import tempfile
 import subprocess
 import time
 import signal
-from contextlib import contextmanager
+from contextlib import contextmanager, AsyncExitStack
 from typing import Optional, Tuple, Dict, Any
 from dotenv import load_dotenv
 from interaction_handler import InteractionHandler
 from core.logger import log_info, log_error, log_debug, log_warning
 from core.monitoring import SystemMonitor
 from core.utils import ensure_directory
-from extract.classes import ClassExtractor
-from extract.functions import FunctionExtractor
-from docs import MarkdownGenerator
-from api.api_client import AzureOpenAIClient
+from api.models.api_client import AzureOpenAIClient
 from core.config import AzureOpenAIConfig
-from docstring_utils import (
-    parse_docstring,
-    validate_docstring,
-    analyze_code_element_docstring,
-)
-from core.cache import Cache  # Assuming a Cache class is defined in cache.py
 from pathlib import Path
 import ast
-import re
-import aiofiles
 
 # Load environment variables from .env file
 load_dotenv()
@@ -176,9 +167,12 @@ class SourceCodeHandler:
             stripped_line = line.strip()
             if stripped_line:
                 # Calculate proper indentation
-                if stripped_line.startswith(('def ', 'class ', 'if ', 'elif ', 'else:', 'try:', 'except', 'finally:', 'with ')):
+                if stripped_line.startswith(('def ', 'class ', 'if ', 'elif ',
+                                             'else:', 'try:', 'except',
+                                             'finally:', 'with ')):
                     next_indent = current_indent + 4
-                elif stripped_line == 'else:' or stripped_line.startswith(('elif ', 'except', 'finally:')):
+                elif stripped_line == 'else:' or stripped_line.startswith(
+                        ('elif ', 'except', 'finally:')):
                     current_indent = max(0, current_indent - 4)
                     next_indent = current_indent + 4
                 else:
@@ -335,11 +329,11 @@ async def process_file(file_path: str, args: argparse.Namespace, client: AzureOp
 
     try:
         # Load and preprocess the source code
-        async with contextlib.AsyncExitStack() as stack:
+        async with AsyncExitStack() as stack:
             file_handle = await stack.enter_async_context(
                 aiofiles.open(file_path, mode='r', encoding='utf-8')
             )
-            source_code = await file_handle.read()
+            await file_handle.read()  # Removed unused variable
 
             processed_code, metadata = process_source_safely(file_path)
 
@@ -348,16 +342,14 @@ async def process_file(file_path: str, args: argparse.Namespace, client: AzureOp
                 return
 
             # Initialize the interaction handler with proper cleanup
-            interaction_handler = await stack.enter_async_context(
-                InteractionHandler(
-                    client=client,
-                    cache_config={
-                        'host': args.redis_host,
-                        'port': args.redis_port,
-                        'db': args.redis_db,
-                        'password': args.redis_password
-                    }
-                )
+            interaction_handler = InteractionHandler(
+                client=client,
+                cache_config={
+                    'host': args.redis_host,
+                    'port': args.redis_port,
+                    'db': args.redis_db,
+                    'password': args.redis_password
+                }
             )
 
             # Process functions and classes
@@ -383,7 +375,16 @@ async def process_file(file_path: str, args: argparse.Namespace, client: AzureOp
 
     except Exception as e:
         log_error(f"Failed to process file {file_path}: {e}")
-        monitor.log_request(file_path, "error", time.time() - start_time, error=str(e))
+        monitor.log_api_request(
+            endpoint=file_path,
+            tokens=0,
+            response_time=time.time() - start_time,
+            status="error",
+            prompt_tokens=0,
+            completion_tokens=0,
+            estimated_cost=0.0,
+            error=str(e)
+        )
         raise
     finally:
         # Cleanup any remaining resources

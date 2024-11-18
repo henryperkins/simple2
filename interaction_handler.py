@@ -6,7 +6,7 @@ import json
 from typing import Dict, Tuple, Optional, List
 import ast
 from dotenv import load_dotenv
-from api.api_client import AzureOpenAIClient
+from api.models.api_client import AzureOpenAIClient
 from core.config import AzureOpenAIConfig
 from docs import DocStringManager
 from core.cache import Cache
@@ -16,11 +16,11 @@ from extract.extraction_manager import ExtractionManager
 from docstring_utils import (
     analyze_code_element_docstring,
     parse_docstring,
-    validate_docstring,
+    DocstringValidator,
+    parse_and_validate_docstring  # Ensure this import is correct
 )
 from api.response_parser import ResponseParser
 from core.utils import handle_exceptions
-from docstring_utils import DocstringValidator  # Assuming this is where the validator is defined
 from core.metrics import Metrics  # Ensure this import is added
 
 # Load environment variables from .env file
@@ -58,6 +58,7 @@ class InteractionHandler:
         else:
             self.client = client
 
+        self.config = config  # Store config as an instance attribute
         self.cache = Cache(**(cache_config or {}))
         self.monitor = SystemMonitor()
         self.batch_size = batch_size
@@ -174,16 +175,19 @@ class InteractionHandler:
             Tuple[Optional[str], Optional[Dict]]: The generated docstring and metadata, or None if failed.
         """
         async with self.semaphore:
+            func_name = function_info.get("name", "unknown")  # Ensure func_name is always initialized
             try:
                 if not function_info or 'name' not in function_info:
                     log_error("Invalid function info provided")
                     return None, None
 
-                func_name = function_info.get("name", "unknown")
-                
                 if 'node' not in function_info:
                     log_error(f"Missing AST node for function: {func_name}")
                     return None, None
+
+                # Ensure 'returns' key is present
+                if 'returns' not in function_info:
+                    function_info['returns'] = 'None'  # Default to 'None' if not specified
 
                 # Calculate complexity metrics
                 complexity_score = self.metrics.calculate_complexity(function_info['node'])
@@ -232,15 +236,15 @@ class InteractionHandler:
                         await self.cache.invalidate_by_tags([cache_key])
 
                 # Generate new docstring with validation
-                for attempt in range(self.config.max_retries):
+                max_retries = self.config.max_retries if self.config else 3  # Default to 3 retries if config is None
+                for attempt in range(max_retries):
                     try:
                         response = await self.client.generate_docstring(
                             func_name=function_info["name"],
                             params=function_info["args"],
                             return_type=function_info["returns"],
                             complexity_score=function_info.get("complexity_score", 0),
-                            maintainability_index=function_info.get("maintainability_index", 0),
-                            halstead_metrics=function_info.get("halstead_metrics", {}),
+                            # Adjust method call to match the expected parameters
                             existing_docstring=function_info["docstring"],
                             decorators=function_info["decorators"],
                             exceptions=function_info.get("exceptions", []),

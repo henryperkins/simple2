@@ -1,4 +1,3 @@
-# api_interaction.py
 """
 API Interaction Module
 
@@ -8,9 +7,9 @@ handling retries, managing rate limits, and validating connections.
 
 import asyncio
 import json
-from typing import List, Tuple, Optional, Dict, Any
+from typing import List, Tuple, Optional, Dict, Any, Union, Mapping, Iterable
 from openai import AsyncAzureOpenAI
-from openai.types.chat import ChatCompletion
+from openai.types.chat import ChatCompletion, ChatCompletionMessageParam
 from core.logger import log_info, log_error, log_debug, log_warning
 from api.token_management import TokenManager, TokenUsage
 from core.cache import Cache
@@ -42,6 +41,12 @@ class APIInteraction:
         self.current_retry = 0
         self.validator = DocstringValidator()  # Add validator instance
         log_info("APIInteraction initialized successfully.")
+
+    def _log_token_usage(self, func_name: str, token_usage: TokenUsage, response_time: float = 0.0, error: Optional[str] = None):
+        """Logs token usage for a function."""
+        log_info(f"Token usage for {func_name}: {token_usage.total_tokens} tokens used, response time: {response_time}s")
+        if error:
+            log_error(f"Error during token usage logging for {func_name}: {error}")
 
     def _get_docstring_function(self) -> Dict[str, Any]:
         """Enhanced function schema for docstring generation."""
@@ -117,17 +122,18 @@ class APIInteraction:
         """Generates a docstring for a function using Azure OpenAI with token management."""
         log_debug(f"Generating docstring for function: {func_name}")
         
-        cache_key = f"docstring:{func_name}:{hash(str(params))}:{hash(return_type)}"
+        # Convert lists to tuples for hashable contexts
+        cache_key = f"docstring:{func_name}:{hash(tuple(params))}:{hash(return_type)}"
 
         try:
             # Check cache first
-            cached_response = await self.cache.get(cache_key)
+            cached_response = await self.cache.get_cached_docstring(cache_key)
             if cached_response:
                 log_info(f"Cache hit for function: {func_name}")
                 return json.loads(cached_response)
 
             # Create messages
-            messages = [
+            messages: List[ChatCompletionMessageParam] = [
                 {
                     "role": "system",
                     "content": "You are a technical documentation expert. Generate comprehensive and accurate function documentation."
@@ -150,10 +156,9 @@ class APIInteraction:
                 return None
 
             # Optimize prompt if needed
-            if metrics['total_tokens'] > self.config.max_tokens * 0.8:  # 80% threshold
-                messages = await self._optimize_prompt(messages, metrics)
-                if not messages:
-                    return None
+            optimized_messages = await self._optimize_prompt(messages, {k: int(v) for k, v in metrics.items()})
+            if optimized_messages is None:
+                return None
 
             # Make API request with retry logic and token tracking
             for attempt in range(self.config.max_retries):
@@ -164,10 +169,18 @@ class APIInteraction:
                     )
 
                     start_time = asyncio.get_event_loop().time()
-                    response = await self._make_api_request(messages, attempt)
+                    response = await self.client.chat.completions.create(
+                        model=self.config.deployment_name,
+                        messages=optimized_messages,
+                        temperature=self.config.temperature,
+                        max_tokens=self.config.max_tokens
+                    )
                     response_time = asyncio.get_event_loop().time() - start_time
 
                     if response:
+                        # Log the raw API response for debugging
+                        log_debug(f"Raw API response: {response}")
+
                         # Parse and validate the response
                         parsed_response = await self._process_response(response, {'function': func_name})
                         if parsed_response:
@@ -179,10 +192,10 @@ class APIInteraction:
                             self._log_token_usage(func_name, token_usage, response_time)
 
                             # Cache the successful response
-                            await self.cache.set(
+                            await self.cache.save_docstring(
                                 cache_key,
-                                json.dumps(parsed_response),
-                                expire=self.config.cache_ttl
+                                parsed_response,  # Ensure the response is a dictionary
+                                ttl=self.config.cache_ttl
                             )
                             return parsed_response
 
@@ -205,19 +218,19 @@ class APIInteraction:
 
     async def _optimize_prompt(
         self, 
-        messages: List[Dict[str, str]], 
-        metrics: Dict[str, int]
-    ) -> Optional[List[Dict[str, str]]]:
+        messages: List[ChatCompletionMessageParam], 
+        metrics: Mapping[str, int]
+    ) -> Optional[List[ChatCompletionMessageParam]]:
         """Optimizes the prompt to fit within token limits."""
         try:
             optimized_messages, token_usage = self.token_manager.optimize_prompt(
-                messages,
+                json.dumps(messages),
                 max_tokens=self.config.max_tokens,
                 preserve_sections=['parameters', 'returns']
             )
             
             log_info(f"Optimized prompt tokens: {token_usage.prompt_tokens}")
-            return optimized_messages
+            return json.loads(optimized_messages)
 
         except Exception as e:
             log_error(f"Error optimizing prompt: {e}")
@@ -225,7 +238,7 @@ class APIInteraction:
 
     async def _make_api_request(
         self, 
-        messages: List[Dict[str, str]], 
+        messages: List[ChatCompletionMessageParam], 
         attempt: int
     ) -> Optional[ChatCompletion]:
         """Makes an API request with token tracking."""
@@ -233,7 +246,7 @@ class APIInteraction:
             log_debug(f"Making API request, attempt {attempt + 1}")
             
             # Pre-request token check
-            estimated_tokens = self.token_manager.estimate_tokens(messages)
+            estimated_tokens = self.token_manager.estimate_tokens(json.dumps(messages))
             if estimated_tokens > self.config.max_tokens:
                 log_warning("Estimated tokens exceed maximum limit")
                 return None
@@ -241,17 +254,16 @@ class APIInteraction:
             response = await self.client.chat.completions.create(
                 model=self.config.deployment_name,
                 messages=messages,
-                functions=[self._get_docstring_function()],
-                function_call={"name": "generate_docstring"},
                 temperature=self.config.temperature,
                 max_tokens=self.config.max_tokens
             )
             
             # Track token usage
-            self.token_manager.track_request(
-                request_tokens=response.usage.prompt_tokens,
-                response_tokens=response.usage.completion_tokens
-            )
+            if response.usage:
+                self.token_manager.track_request(
+                    request_tokens=response.usage.prompt_tokens,
+                    response_tokens=response.usage.completion_tokens
+                )
             
             log_debug("API request successful")
             return response
@@ -267,11 +279,11 @@ class APIInteraction:
             if not response.choices:
                 return None
 
-            function_call = response.choices[0].message.function_call
-            if not function_call:
+            content = response.choices[0].message.content
+            if not content:
                 return None
 
-            parsed_args = json.loads(function_call.arguments)
+            parsed_args = json.loads(content)
             
             # Validate response content
             is_valid, validation_errors = self.validator.validate_docstring(parsed_args)
@@ -286,9 +298,9 @@ class APIInteraction:
             return {
                 "content": parsed_args,
                 "usage": {
-                    "prompt_tokens": response.usage.prompt_tokens,
-                    "completion_tokens": response.usage.completion_tokens,
-                    "total_tokens": response.usage.total_tokens
+                    "prompt_tokens": response.usage.prompt_tokens if response.usage else 0,
+                    "completion_tokens": response.usage.completion_tokens if response.usage else 0,
+                    "total_tokens": response.usage.total_tokens if response.usage else 0
                 }
             }
 
@@ -320,7 +332,7 @@ class APIInteraction:
     ) -> str:
         """Creates the prompt for the API request."""
         return f"""
-Generate documentation for the following Python function:
+Generate a comprehensive docstring for the following Python function:
 
 Function Name: {func_name}
 Parameters: {', '.join(f'{name}: {type_}' for name, type_ in params)}
@@ -330,15 +342,17 @@ Exceptions: {', '.join(exceptions) if exceptions else 'None'}
 Complexity Score: {complexity_score}
 Existing Docstring: {existing_docstring if existing_docstring else 'None'}
 
-Generate a comprehensive docstring that includes:
-1. A clear summary of the function's purpose
-2. Detailed parameter descriptions with types
-3. Return value description with type
-4. Usage examples
-5. Time and space complexity analysis
-6. Any relevant exceptions and their conditions
+Please provide a JSON response with the following structure:
 
-Use the generate_docstring function to provide structured output.
+{{
+    "docstring": "The complete docstring text",
+    "summary": "A brief summary of the function's purpose",
+    "parameters": [...],
+    "returns": {{...}},
+    // Include all necessary fields
+}}
+
+Ensure that the "docstring" field is included in your response.
 """
 
     async def validate_connection(self) -> bool:
@@ -384,9 +398,9 @@ Use the generate_docstring function to provide structured output.
                 "status": "healthy",
                 "latency": round(latency, 3),
                 "token_usage": {
-                    "prompt_tokens": response.usage.prompt_tokens,
-                    "completion_tokens": response.usage.completion_tokens,
-                    "total_tokens": response.usage.total_tokens
+                    "prompt_tokens": response.usage.prompt_tokens if response.usage else 0,
+                    "completion_tokens": response.usage.completion_tokens if response.usage else 0,
+                    "total_tokens": response.usage.total_tokens if response.usage else 0
                 }
             })
             
@@ -419,7 +433,7 @@ Use the generate_docstring function to provide structured output.
         """Async context manager exit."""
         await self.close()
 
-    def get_client_info(self) -> Dict[str, Any]:
+    def get_client_info(self) -> Dict[str, Union[int, float]]:
         """Gets information about the API client configuration."""
         return {
             "endpoint": self.config.endpoint,
