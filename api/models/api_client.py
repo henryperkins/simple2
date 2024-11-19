@@ -13,11 +13,9 @@ from core.cache import Cache
 from core.config import AzureOpenAIConfig
 from api.token_management import TokenManager
 from api.api_interaction import APIInteraction
-from core.logger import log_info, log_error, log_debug
+from core.logger import log_info, log_error, log_debug, log_exception
 from core.exceptions import TooManyRetriesError
 from core.monitoring import SystemMonitor
-
-
 
 class AzureOpenAIClient:
     """
@@ -49,19 +47,17 @@ class AzureOpenAIClient:
         )
         self.cache = Cache()
         
-        # Initialize Azure OpenAI client
         self._client = AsyncAzureOpenAI(
-            api_key=self.config.api_key,
+            api_key=self.config.api_key[:4] + "****",  # Mask API key in logs
             api_version=self.config.api_version,
             azure_endpoint=self.config.endpoint
         )
         
-        # Initialize API interaction handler
         self.api_interaction = APIInteraction(
             self.config,
             self.token_manager,
             self.cache,
-            SystemMonitor()  # Pass the SystemMonitor instance
+            SystemMonitor()
         )
 
         log_info("Azure OpenAI client initialized successfully")
@@ -119,13 +115,13 @@ class AzureOpenAIClient:
             return None
             
         except OpenAIError as e:
-            log_error(f"OpenAI API error for {func_name}: {str(e)}")
+            log_exception(f"OpenAI API error for {func_name}: {str(e)}")
             return None
         except TooManyRetriesError as e:
             log_error(f"Max retries exceeded for {func_name}: {e}")
             raise
         except Exception as e:
-            log_error(f"Error generating docstring for {func_name}: {e}")
+            log_exception(f"Error generating docstring for {func_name}: {e}")
             return None
 
     async def batch_generate_docstrings(
@@ -165,13 +161,13 @@ class AzureOpenAIClient:
                 
                 for func, result in zip(batch, batch_results):
                     if isinstance(result, Exception):
-                        log_error(f"Error processing {func.get('func_name', 'unknown')}: {result}")
+                        log_exception(f"Error processing {func.get('func_name', 'unknown')}: {result}")
                         results.append(None)
                     else:
                         results.append(result)
                 
             except Exception as e:
-                log_error(f"Batch processing error: {str(e)}")
+                log_exception(f"Batch processing error: {str(e)}")
                 results.extend([None] * len(batch))
         
         return results
@@ -183,17 +179,19 @@ class AzureOpenAIClient:
         Returns:
             Dict[str, Any]: Health check results including status, latency, and metrics
         """
+        log_debug("Performing health check for Azure OpenAI service")
         return await self.api_interaction.health_check()
 
     async def close(self):
         """Close the client and release any resources."""
+        log_debug("Closing Azure OpenAI client")
         try:
             if self.api_interaction:
                 await self.api_interaction.close()
             if self._client:
                 await self._client.close()
         except Exception as e:
-            log_error(f"Error closing API client: {str(e)}")
+            log_exception(f"Error closing API client: {str(e)}")
 
     async def __aenter__(self):
         """Async context manager entry."""

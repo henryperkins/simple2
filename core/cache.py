@@ -15,8 +15,8 @@ from typing import Optional, Dict, Any, List, Union
 import redis
 from dataclasses import dataclass
 import asyncio
-from core.logger import log_info, log_error, log_debug
-from docstring_utils import DocstringValidator  # Ensure this import is added
+from core.logger import log_info, log_error, log_debug, log_exception
+from docstring_utils import DocstringValidator
 
 @dataclass
 class CacheStats:
@@ -59,14 +59,12 @@ class Cache:
         self.default_ttl = default_ttl
         self.max_retries = max_retries
         self.stats = CacheStats()
-        self._stats_lock = asyncio.Lock()  # Lock for stats
-        self._redis_lock = asyncio.Lock()  # Lock for Redis operations
+        self._stats_lock = asyncio.Lock()
+        self._redis_lock = asyncio.Lock()
 
-        # Initialize Redis connection with proper error handling
         self.redis_available = False
         self._init_redis(host, port, db, password)
 
-        # Initialize in-memory cache with synchronization
         self.memory_cache = LRUCache(max_size=max_memory_items)
 
     def _init_redis(self, host, port, db, password):
@@ -88,7 +86,7 @@ class Cache:
                 log_info("Redis cache initialized successfully")
                 break
             except redis.RedisError as e:
-                log_error(f"Redis connection error (attempt {attempt + 1}): {e}")
+                log_exception(f"Redis connection error (attempt {attempt + 1}): {e}")
                 if attempt == self.max_retries - 1:
                     log_error("Falling back to in-memory cache only")
                 time.sleep(2**attempt)
@@ -118,7 +116,6 @@ class Cache:
             if error:
                 self.stats.errors += 1
 
-            # Update average response time thread-safely
             self.stats.avg_response_time = (
                 (self.stats.avg_response_time * (self.stats.total_requests - 1) +
                  response_time) / self.stats.total_requests
@@ -138,7 +135,6 @@ class Cache:
         """
         start_time = time.time()
         try:
-            # Try Redis first with proper locking
             if self.redis_available:
                 async with self._redis_lock:
                     value = await self._get_from_redis(key)
@@ -148,7 +144,6 @@ class Cache:
                             value if return_metadata else {"docstring": value["docstring"]}
                         )
 
-            # Try memory cache with built-in synchronization
             value = await self.memory_cache.get(key)
             if value:
                 await self._update_stats(hit=True, response_time=time.time() - start_time)
@@ -158,7 +153,7 @@ class Cache:
             return None
 
         except Exception as e:
-            log_error(f"Cache retrieval error: {e}")
+            log_exception(f"Cache retrieval error: {e}")
             await self._update_stats(error=True, response_time=time.time() - start_time)
             return None
 
@@ -182,7 +177,6 @@ class Cache:
         """
         ttl = ttl or self.default_ttl
         try:
-            # Validate docstring before caching
             validator = DocstringValidator()
             is_valid, validation_errors = validator.validate_docstring(data)
             
@@ -203,18 +197,16 @@ class Cache:
                 }
             }
 
-            # Try Redis first
             if self.redis_available:
                 success = await self._set_in_redis(key, cache_entry, ttl)
                 if success:
                     return True
 
-            # Fallback to memory cache
             await self.memory_cache.set(key, cache_entry, ttl)
             return True
 
         except Exception as e:
-            log_error(f"Cache save error: {e}")
+            log_exception(f"Cache save error: {e}")
             return False
 
     async def invalidate_by_tags(self, tags: List[str]) -> int:
@@ -233,7 +225,7 @@ class Cache:
             count += await self.memory_cache.invalidate_by_tags(tags)
             return count
         except Exception as e:
-            log_error(f"Tag-based invalidation error: {e}")
+            log_exception(f"Tag-based invalidation error: {e}")
             return count
 
     async def _get_from_redis(self, key: str) -> Optional[Dict[str, Any]]:
@@ -249,7 +241,7 @@ class Cache:
             value = self.redis_client.get(key)
             return json.loads(value) if value else None
         except Exception as e:
-            log_error(f"Redis get error: {e}")
+            log_exception(f"Redis get error: {e}")
             return None
 
     async def _set_in_redis(self, key: str, value: Dict[str, Any], ttl: int) -> bool:
@@ -267,7 +259,6 @@ class Cache:
             serialized = json.dumps(value)
             self.redis_client.setex(key, ttl, serialized)
 
-            # Store tags
             if value.get("cache_metadata", {}).get("tags"):
                 for tag in value["cache_metadata"]["tags"]:
                     tag_key = f"tag:{tag}"
@@ -276,7 +267,7 @@ class Cache:
 
             return True
         except Exception as e:
-            log_error(f"Redis set error: {e}")
+            log_exception(f"Redis set error: {e}")
             return False
 
     async def _invalidate_redis_by_tags(self, tags: List[str]) -> int:
@@ -300,7 +291,7 @@ class Cache:
                     self.redis_client.delete(tag_key)
             return count
         except Exception as e:
-            log_error(f"Redis tag invalidation error: {e}")
+            log_exception(f"Redis tag invalidation error: {e}")
             return count
 
     async def _delete_from_redis(self, key: str) -> bool:
@@ -313,7 +304,6 @@ class Cache:
             bool: True if deletion was successful, otherwise False.
         """
         try:
-            # Get tags before deletion
             value = await self._get_from_redis(key)
             if value and value.get("cache_metadata", {}).get("tags"):
                 for tag in value["cache_metadata"]["tags"]:
@@ -322,7 +312,7 @@ class Cache:
             self.redis_client.delete(key)
             return True
         except Exception as e:
-            log_error(f"Redis delete error: {e}")
+            log_exception(f"Redis delete error: {e}")
             return False
 
     async def clear(self) -> bool:
@@ -338,7 +328,7 @@ class Cache:
             self.stats = CacheStats()
             return True
         except Exception as e:
-            log_error(f"Cache clear error: {e}")
+            log_exception(f"Cache clear error: {e}")
             return False
 
     def get_stats(self) -> Dict[str, Union[int, float]]:
@@ -396,7 +386,6 @@ class LRUCache:
                 await self.delete(key)
                 return None
 
-            # Update access order
             self.access_order.remove(key)
             self.access_order.append(key)
 
@@ -411,7 +400,6 @@ class LRUCache:
             ttl (int): Time-to-live in seconds.
         """
         async with self.lock:
-            # Evict oldest item if cache is full
             if len(self.cache) >= self.max_size:
                 await self._evict_oldest()
 

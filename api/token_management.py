@@ -10,10 +10,10 @@ Author: Development Team
 
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union, TypeAlias
 import tiktoken
 
-from core.logger import log_debug, log_error, log_info
+from core.logger import log_debug, log_error, log_info, log_exception
 
 @dataclass
 class TokenUsage:
@@ -77,7 +77,6 @@ class TokenManager:
             model (str): The model name to use for token management
             deployment_name (Optional[str]): The deployment name, which may differ from model name
         """
-        # Map deployment name to model if provided
         if deployment_name:
             self.model = self.DEPLOYMENT_TO_MODEL.get(deployment_name, model)
         else:
@@ -85,18 +84,14 @@ class TokenManager:
 
         self.deployment_name = deployment_name
 
-        # Initialize tokenizer
         try:
             self.encoding = tiktoken.encoding_for_model(self.model)
         except KeyError:
-            # Fallback to cl100k_base for newer models
             self.encoding = tiktoken.get_encoding("cl100k_base")
             
-        # Get model configuration
         self.model_config = self.MODEL_LIMITS.get(self.model, self.MODEL_LIMITS["gpt-4"])
         log_debug(f"TokenManager initialized for model: {self.model}, deployment: {deployment_name}")
 
-        # Initialize token usage tracking
         self.total_prompt_tokens = 0
         self.total_completion_tokens = 0
 
@@ -116,7 +111,7 @@ class TokenManager:
             log_debug(f"Estimated {tokens} tokens for text")
             return tokens
         except Exception as e:
-            log_error(f"Error estimating tokens: {e}")
+            log_exception(f"Error estimating tokens: {e}")
             return 0
 
     def optimize_prompt(
@@ -136,7 +131,7 @@ class TokenManager:
         Returns:
             Tuple[str, TokenUsage]: Optimized text and token usage statistics
         """
-        max_tokens = max_tokens or (self.model_config["max_tokens"] // 2)
+        max_tokens = max_tokens or int(self.model_config["max_tokens"] // 2)
         current_tokens = self.estimate_tokens(text)
 
         if current_tokens <= max_tokens:
@@ -144,7 +139,6 @@ class TokenManager:
             return text, self._calculate_usage(current_tokens, 0)
 
         try:
-            # Split into sections and preserve important parts
             sections = text.split('\n\n')
             preserved = []
             optional = []
@@ -155,11 +149,9 @@ class TokenManager:
                 else:
                     optional.append(section)
 
-            # Start with preserved content
             optimized = '\n\n'.join(preserved)
             remaining_tokens = max_tokens - self.estimate_tokens(optimized)
 
-            # Add optional sections that fit
             for section in optional:
                 section_tokens = self.estimate_tokens(section)
                 if remaining_tokens >= section_tokens:
@@ -171,7 +163,7 @@ class TokenManager:
             return optimized, self._calculate_usage(final_tokens, 0)
 
         except Exception as e:
-            log_error(f"Error optimizing prompt: {e}")
+            log_exception(f"Error optimizing prompt: {e}")
             return text, self._calculate_usage(current_tokens, 0)
 
     def _calculate_usage(self, prompt_tokens: int, completion_tokens: int, cached: bool = False) -> TokenUsage:
@@ -226,11 +218,15 @@ class TokenManager:
             "total_completion_tokens": int(self.total_completion_tokens)
         }
 
+    # Type aliases for better readability
+    MetricsDict: TypeAlias = Dict[str, Union[int, float]]
+    ValidationResult: TypeAlias = Tuple[bool, MetricsDict, str]
+
     def validate_request(
         self,
         prompt: str,
         max_completion_tokens: Optional[int] = None
-    ) -> Tuple[bool, Dict[str, Union[int, float]], str]:
+    ) -> ValidationResult:
         """
         Validate if request is within token limits.
 
@@ -239,7 +235,7 @@ class TokenManager:
             max_completion_tokens (Optional[int]): Maximum allowed completion tokens
 
         Returns:
-            Tuple[bool, Dict[str, Union[int, float]], str]: 
+            ValidationResult: 
                 - Boolean indicating if request is valid
                 - Dictionary of token metrics
                 - Status message
@@ -272,7 +268,7 @@ class TokenManager:
         """
         return {
             "max_tokens": self.model_config["max_tokens"],
-            "max_prompt_tokens": self.model_config["max_tokens"] // 2,  # Conservative estimate
+            "max_prompt_tokens": self.model_config["max_tokens"] // 2,
             "max_completion_tokens": self.model_config["max_tokens"] // 2
         }
 

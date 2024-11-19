@@ -9,16 +9,13 @@ and update docstrings.
 Version: 1.0.1
 Author: Development Team
 """
-
 import argparse
 import asyncio
 import os
-import aiofiles
-import shutil
-import tempfile
-import subprocess
-import time
 import signal
+import tempfile
+import ast
+import time
 from contextlib import contextmanager, AsyncExitStack
 from typing import Optional, Tuple, Dict, Any
 from dotenv import load_dotenv
@@ -28,8 +25,9 @@ from core.monitoring import SystemMonitor
 from core.utils import ensure_directory
 from api.models.api_client import AzureOpenAIClient
 from core.config import AzureOpenAIConfig
+from extract.extraction_manager import ExtractionManager
 from pathlib import Path
-import ast
+import aiofiles
 
 # Load environment variables from .env file
 load_dotenv()
@@ -56,11 +54,14 @@ def cleanup_context(temp_dir: Optional[str] = None):
     finally:
         if temp_dir and os.path.exists(temp_dir):
             try:
-                log_debug(f"Cleaning up temporary directory: {temp_dir}")
-                shutil.rmtree(temp_dir)
-                log_info("Cleanup completed successfully")
+                for root, dirs, files in os.walk(temp_dir, topdown=False):
+                    for name in files:
+                        os.remove(os.path.join(root, name))
+                    for name in dirs:
+                        os.rmdir(os.path.join(root, name))
+                os.rmdir(temp_dir)
             except Exception as e:
-                log_error(f"Error during cleanup: {e}")
+                log_error(f"Error cleaning up temporary directory: {e}")
 
 
 async def initialize_client() -> AzureOpenAIClient:
@@ -126,156 +127,93 @@ def save_updated_source(file_path: str, updated_code: str) -> None:
         raise
 
 
-class SourceCodeHandler:
-    """Handles source code preprocessing and validation."""
+def validate_and_fix(source_code: str) -> Tuple[str, bool, Optional[str]]:
+    """
+    Validate and attempt to fix source code.
 
-    @staticmethod
-    def preprocess_source(source_code: str) -> Tuple[str, bool]:
-        """
-        Preprocess source code to handle common issues.
+    Args:
+        source_code: Source code to validate
 
-        Args:
-            source_code: Raw source code
+    Returns:
+        Tuple[str, bool, Optional[str]]: (processed_code, is_valid, error_message)
+    """
+    try:
+        # First try to compile the original code
+        ast.parse(source_code)
+        return source_code, True, None
+    except (SyntaxError, IndentationError, TabError) as e:
+        log_warning(f"Initial validation failed: {str(e)}")
 
-        Returns:
-            Tuple[str, bool]: (processed_code, was_modified)
-        """
-        modified = False
-        lines = source_code.splitlines()
-        processed_lines = []
-        current_indent = 0
-
-        for line in lines:
-            # Skip blank lines
-            if not line.strip():
-                processed_lines.append('')
-                continue
-
-            # Count leading spaces and tabs
-            leading_spaces = len(line) - len(line.lstrip(' '))
-            leading_tabs = len(line) - len(line.lstrip('\t'))
-
-            # Handle mixed indentation
-            if '\t' in line and ' ' in line[:line.index('\t')]:
-                # Convert to spaces
-                processed_line = line.replace('\t', '    ')
-                modified = True
+        try:
+            # Attempt to fix common issues
+            processed_code, modified = preprocess_source(source_code)
+            if modified:
+                # Re-validate the fixed code
+                ast.parse(processed_code)
+                return processed_code, True, None
             else:
-                processed_line = line
+                return source_code, False, str(e)
+        except Exception as fix_error:
+            log_error(f"Failed to fix source code: {str(fix_error)}")
+            return source_code, False, str(fix_error)
 
-            # Handle inconsistent indentation
-            stripped_line = line.strip()
-            if stripped_line:
-                # Calculate proper indentation
-                if stripped_line.startswith(('def ', 'class ', 'if ', 'elif ',
-                                             'else:', 'try:', 'except',
-                                             'finally:', 'with ')):
-                    next_indent = current_indent + 4
-                elif stripped_line == 'else:' or stripped_line.startswith(
-                        ('elif ', 'except', 'finally:')):
-                    current_indent = max(0, current_indent - 4)
-                    next_indent = current_indent + 4
-                else:
-                    next_indent = current_indent
 
-                # Apply proper indentation
-                if leading_spaces > 0 or leading_tabs > 0:
-                    processed_line = ' ' * current_indent + stripped_line
-                    modified = True
-                current_indent = next_indent
+def preprocess_source(source_code: str) -> Tuple[str, bool]:
+    """
+    Preprocess source code to handle common issues.
 
-            processed_lines.append(processed_line)
+    Args:
+        source_code: Raw source code
 
-        return '\n'.join(processed_lines), modified
+    Returns:
+        Tuple[str, bool]: (processed_code, was_modified)
+    """
+    modified = False
+    lines = source_code.splitlines()
+    processed_lines = []
+    current_indent = 0
 
-    @staticmethod
-    def validate_and_fix(source_code: str) -> Tuple[str, bool, Optional[str]]:
-        """
-        Validate and attempt to fix source code.
+    for line in lines:
+        # Skip blank lines
+        if not line.strip():
+            processed_lines.append('')
+            continue
 
-        Args:
-            source_code: Source code to validate
+        # Count leading spaces and tabs
+        leading_spaces = len(line) - len(line.lstrip(' '))
+        leading_tabs = len(line) - len(line.lstrip('\t'))
 
-        Returns:
-            Tuple[str, bool, Optional[str]]: (processed_code, is_valid, error_message)
-        """
-        try:
-            # First try to compile the original code
-            ast.parse(source_code)
-            return source_code, True, None
-        except (SyntaxError, IndentationError, TabError) as e:
-            log_warning(f"Initial validation failed: {str(e)}")
+        # Handle mixed indentation
+        if '\t' in line and ' ' in line[:line.index('\t')]:
+            # Convert to spaces
+            processed_line = line.replace('\t', '    ')
+            modified = True
+        else:
+            processed_line = line
 
-            try:
-                # Attempt to fix the code
-                processed_code, was_modified = SourceCodeHandler.preprocess_source(source_code)
+        # Handle inconsistent indentation
+        stripped_line = line.strip()
+        if stripped_line:
+            # Calculate proper indentation
+            if stripped_line.startswith(('def ', 'class ', 'if ', 'elif ',
+                                         'else:', 'try:', 'except',
+                                         'finally:', 'with ')):
+                next_indent = current_indent + 4
+            elif stripped_line == 'else:' or stripped_line.startswith(
+                    ('elif ', 'except', 'finally:')):
+                current_indent = max(0, current_indent - 4)
+                next_indent = current_indent + 4
+            else:
+                next_indent = current_indent
+            # Apply proper indentation
+            if leading_spaces > 0 or leading_tabs > 0:
+                processed_line = ' ' * current_indent + stripped_line
+                modified = True
+            current_indent = next_indent
 
-                if was_modified:
-                    # Validate the processed code
-                    ast.parse(processed_code)
-                    log_info("Successfully fixed source code issues")
-                    return processed_code, True, None
-                else:
-                    return source_code, False, str(e)
+        processed_lines.append(processed_line)
 
-            except Exception as fix_error:
-                log_error(f"Failed to fix source code: {str(fix_error)}")
-                return source_code, False, str(fix_error)
-
-    @staticmethod
-    def extract_metadata(source_code: str) -> Optional[Dict[str, Any]]:
-        """
-        Safely extract metadata from source code.
-
-        Args:
-            source_code: Source code to analyze
-
-        Returns:
-            Optional[Dict[str, Any]]: Extracted metadata or None if failed
-        """
-        try:
-            # Try to fix any issues first
-            processed_code, is_valid, error = SourceCodeHandler.validate_and_fix(source_code)
-
-            if not is_valid:
-                log_error(f"Could not process source code: {error}")
-                return None
-
-            tree = ast.parse(processed_code)
-
-            metadata = {
-                'classes': [],
-                'functions': []
-            }
-
-            for node in ast.walk(tree):
-                if isinstance(node, ast.ClassDef):
-                    class_info = {
-                        'name': node.name,
-                        'docstring': ast.get_docstring(node) or '',
-                        'methods': [],
-                        'is_exception': any(
-                            base.id in ('Exception', 'BaseException')
-                            for base in node.bases
-                            if isinstance(base, ast.Name)
-                        )
-                    }
-                    metadata['classes'].append(class_info)
-
-                elif isinstance(node, ast.FunctionDef):
-                    func_info = {
-                        'name': node.name,
-                        'docstring': ast.get_docstring(node) or '',
-                        'args': [],
-                        'return_type': 'Any'
-                    }
-                    metadata['functions'].append(func_info)
-
-            return metadata
-
-        except Exception as e:
-            log_error(f"Error extracting metadata: {str(e)}")
-            return None
+    return '\n'.join(processed_lines), modified
 
 
 def process_source_safely(file_path: str) -> Tuple[Optional[str], Optional[Dict[str, Any]]]:
@@ -292,16 +230,16 @@ def process_source_safely(file_path: str) -> Tuple[Optional[str], Optional[Dict[
         with open(file_path, 'r', encoding='utf-8') as f:
             source_code = f.read()
 
-        # Process the source code
-        handler = SourceCodeHandler()
-        processed_code, is_valid, error = handler.validate_and_fix(source_code)
+        # Validate and preprocess the source code
+        processed_code, is_valid, error = validate_and_fix(source_code)
 
         if not is_valid:
             log_error(f"Source code validation failed: {error}")
             return None, None
 
         # Extract metadata
-        metadata = handler.extract_metadata(processed_code)
+        extraction_manager = ExtractionManager()
+        metadata = extraction_manager.extract_metadata(processed_code)
         if metadata is None:
             log_error("Failed to extract metadata")
             return None, None
@@ -333,12 +271,20 @@ async def process_file(file_path: str, args: argparse.Namespace, client: AzureOp
             file_handle = await stack.enter_async_context(
                 aiofiles.open(file_path, mode='r', encoding='utf-8')
             )
-            await file_handle.read()  # Removed unused variable
+            source_code = await file_handle.read()
 
-            processed_code, metadata = process_source_safely(file_path)
+            # Use the loaded source code instead of reading it again
+            processed_code, is_valid, error = validate_and_fix(source_code)
 
-            if not processed_code or not metadata:
-                log_error(f"Could not process {file_path}: Invalid source code or metadata")
+            if not is_valid:
+                log_error(f"Source code validation failed: {error}")
+                return
+
+            # Extract metadata
+            extraction_manager = ExtractionManager()
+            metadata = extraction_manager.extract_metadata(processed_code)
+            if metadata is None:
+                log_error("Failed to extract metadata")
                 return
 
             # Initialize the interaction handler with proper cleanup
@@ -368,35 +314,15 @@ async def process_file(file_path: str, args: argparse.Namespace, client: AzureOp
                 async with aiofiles.open(output_path, 'w', encoding='utf-8') as out_file:
                     await out_file.write(updated_code)
 
-                log_info(f"Documentation saved to: {doc_path}")
-                log_info(f"Updated source code saved to: {output_path}")
-            else:
-                log_warning(f"No updates generated for {file_path}")
-
     except Exception as e:
-        log_error(f"Failed to process file {file_path}: {e}")
-        monitor.log_api_request(
-            endpoint=file_path,
-            tokens=0,
-            response_time=time.time() - start_time,
-            status="error",
-            prompt_tokens=0,
-            completion_tokens=0,
-            estimated_cost=0.0,
-            error=str(e)
-        )
-        raise
+        log_error(f"Error processing file {file_path}: {e}")
     finally:
-        # Cleanup any remaining resources
+        if file_handle:
+            await file_handle.close()
         for resource in temp_resources:
-            try:
-                if hasattr(resource, 'close'):
-                    await resource.close()
-                elif hasattr(resource, '__aexit__'):
-                    await resource.__aexit__(None, None, None)
-            except Exception as e:
-                log_error(f"Error cleaning up resource: {e}")
+            await resource.close()
 
+    log_info(f"Processing of file {file_path} completed in {time.time() - start_time:.2f} seconds")
 
 async def run_workflow(args: argparse.Namespace) -> None:
     """
@@ -429,45 +355,29 @@ async def run_workflow(args: argparse.Namespace) -> None:
 
                 try:
                     await asyncio.wait_for(process.communicate(), timeout=300)
-                    if process.returncode is None or process.returncode != 0:
-                        raise subprocess.CalledProcessError(process.returncode or -1, ['git', 'clone'])
-                    source_path = temp_dir
                 except asyncio.TimeoutError:
-                    log_error("Repository cloning timed out")
-                    if process:
-                        process.terminate()
-                    return
+                    process.kill()
+                    await process.communicate()
+                    log_error("Git clone operation timed out")
 
             except Exception as e:
                 log_error(f"Failed to clone repository: {str(e)}")
                 return
 
         with cleanup_context(temp_dir):
-            if os.path.isdir(source_path):
+            if os.path.isdir(temp_dir or source_path):
                 # Process directory
                 tasks = []
-                for root, _, files in os.walk(source_path):
+                for root, _, files in os.walk(temp_dir or source_path):
                     for file in files:
                         if file.endswith('.py'):
                             file_path = os.path.join(root, file)
-                            task = asyncio.create_task(
-                                process_file(file_path, args, client)
-                            )
-                            tasks.append(task)
+                            tasks.append(process_file(file_path, args, client))
 
                 if tasks:
-                    # Process all files with proper error handling
-                    try:
-                        await asyncio.gather(*tasks)
-                    except asyncio.CancelledError:
-                        log_error("Tasks cancelled - attempting graceful shutdown")
-                        for task in tasks:
-                            if not task.done():
-                                task.cancel()
-                        await asyncio.gather(*tasks, return_exceptions=True)
-                        raise
+                    await asyncio.gather(*tasks)
                 else:
-                    log_warning(f"No Python files found in {source_path}")
+                    log_warning("No Python files found to process")
 
             else:
                 # Process single file
@@ -482,7 +392,6 @@ async def run_workflow(args: argparse.Namespace) -> None:
     finally:
         if client:
             await client.close()
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(

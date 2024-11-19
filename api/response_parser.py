@@ -11,7 +11,7 @@ Author: Development Team
 import json
 from typing import Optional, Dict, Any
 from jsonschema import validate, ValidationError
-from core.logger import log_info, log_error, log_debug
+from core.logger import log_info, log_error, log_debug, log_exception
 
 # Define JSON schema for API response validation
 JSON_SCHEMA = {
@@ -60,15 +60,16 @@ class ResponseParser:
         """
         log_debug("Parsing JSON response.")
         try:
+            if response.startswith('```') and response.endswith('```'):
+                response = response.strip('```')
+                if response.startswith('json'):
+                    response = response[len('json'):].strip()
             response_json = json.loads(response)
-            log_info("Successfully parsed Azure OpenAI response.")
             log_debug(f"Parsed JSON response: {response_json}")
 
-            # Validate against JSON schema
             validate(instance=response_json, schema=JSON_SCHEMA)
-            log_info("Response validated successfully against JSON schema.")
+            log_debug("Response validated successfully against JSON schema.")
 
-            # Extract fields
             parsed_response = {
                 "docstring": response_json["docstring"].strip(),
                 "summary": response_json["summary"].strip(),
@@ -78,16 +79,9 @@ class ResponseParser:
 
             return parsed_response
 
-        except json.JSONDecodeError as e:
-            log_error(f"Failed to parse response as JSON: {e}")
-            return self._parse_plain_text_response(response)
-        except ValidationError as e:
-            log_error(f"Response validation error: {e.message}")
-            log_error(f"Schema path: {' -> '.join(str(p) for p in e.schema_path)}")
+        except (json.JSONDecodeError, ValidationError) as e:
+            log_exception(f"Response parsing/validation error: {e}")
             log_debug(f"Invalid response content: {response}")
-            return None
-        except Exception as e:
-            log_error(f"Unexpected error during JSON response parsing: {e}")
             return None
 
     def validate_response(self, response: Dict[str, Any]) -> bool:
@@ -100,6 +94,7 @@ class ResponseParser:
         Returns:
             bool: True if the response is valid and contains all required fields with proper content.
         """
+        log_debug("Validating API response.")
         try:
             if not isinstance(response, dict) or "content" not in response:
                 log_error("Response missing basic structure")
@@ -107,14 +102,12 @@ class ResponseParser:
 
             content = response["content"]
 
-            # Validate required fields
             required_fields = ["docstring", "summary", "complexity_score", "changelog"]
             missing_fields = [field for field in required_fields if field not in content]
             if missing_fields:
                 log_error(f"Response missing required fields: {missing_fields}")
                 return False
 
-            # Validate usage information if present
             if "usage" in response:
                 usage = response["usage"]
                 required_usage_fields = ["prompt_tokens", "completion_tokens", "total_tokens"]
@@ -135,7 +128,7 @@ class ResponseParser:
             return True
 
         except Exception as e:
-            log_error(f"Error during response validation: {e}")
+            log_exception(f"Error during response validation: {e}")
             return False
 
     @staticmethod
@@ -191,5 +184,5 @@ class ResponseParser:
             return result if result["docstring"] and result["summary"] else None
 
         except Exception as e:
-            log_error(f"Failed to parse plain text response: {e}")
+            log_exception(f"Failed to parse plain text response: {e}")
             return None
