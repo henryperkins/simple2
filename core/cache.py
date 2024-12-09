@@ -18,6 +18,7 @@ import asyncio
 from core.logger import log_info, log_error, log_debug, log_exception
 from docstring_utils import DocstringValidator
 
+
 @dataclass
 class CacheStats:
     """Statistics for cache operations."""
@@ -27,6 +28,7 @@ class CacheStats:
     total_requests: int = 0
     cache_size: int = 0
     avg_response_time: float = 0.0
+
 
 class Cache:
     """Enhanced cache management with Redis and in-memory fallback.
@@ -86,7 +88,8 @@ class Cache:
                 log_info("Redis cache initialized successfully")
                 break
             except redis.RedisError as e:
-                log_exception(f"Redis connection error (attempt {attempt + 1}): {e}")
+                log_exception(
+                    f"Redis connection error (attempt {attempt + 1}): {e}")
                 if attempt == self.max_retries - 1:
                     log_error("Falling back to in-memory cache only")
                 time.sleep(2**attempt)
@@ -141,7 +144,8 @@ class Cache:
                     if value:
                         await self._update_stats(hit=True, response_time=time.time() - start_time)
                         return (
-                            value if return_metadata else {"docstring": value["docstring"]}
+                            value if return_metadata else {
+                                "docstring": value["docstring"]}
                         )
 
             value = await self.memory_cache.get(key)
@@ -179,7 +183,7 @@ class Cache:
         try:
             validator = DocstringValidator()
             is_valid, validation_errors = validator.validate_docstring(data)
-            
+
             if not is_valid:
                 log_error(f"Invalid docstring not cached: {validation_errors}")
                 return False
@@ -346,6 +350,7 @@ class Cache:
             "avg_response_time": self.stats.avg_response_time,
             "redis_available": self.redis_available,
         }
+
 
 class LRUCache:
     """Thread-safe LRU cache implementation for in-memory caching.

@@ -14,6 +14,7 @@ from abc import ABC, abstractmethod
 from typing import Generator, Optional, Dict, Any, List
 from core.logger import log_info, log_error, log_debug
 
+
 class BaseExtractor(ABC):
     """Base class for extracting information from AST nodes.
 
@@ -62,7 +63,8 @@ class BaseExtractor(ABC):
             log_debug(f"Extracting docstring from node: {type(node).__name__}")
             docstring = ast.get_docstring(node)
             if docstring:
-                log_info(f"Docstring extracted from node: {type(node).__name__}")
+                log_info(
+                    f"Docstring extracted from node: {type(node).__name__}")
             else:
                 log_info(f"No docstring found in node: {type(node).__name__}")
             return docstring
@@ -84,7 +86,8 @@ class BaseExtractor(ABC):
             try:
                 annotation = ast.unparse(arg.annotation)
             except Exception as e:
-                log_error(f"Error unparsing annotation for argument '{arg.arg}': {e}")
+                log_error(
+                    f"Error unparsing annotation for argument '{arg.arg}': {e}")
         log_debug(f"Type annotation for '{arg.arg}': {annotation}")
         return annotation
 
@@ -111,11 +114,13 @@ class BaseExtractor(ABC):
             Optional[str]: The default value or None if not present.
         """
         try:
-            index = node.args.args.index(arg) - (len(node.args.args) - len(node.args.defaults))
+            index = node.args.args.index(
+                arg) - (len(node.args.args) - len(node.args.defaults))
             if index >= 0:
                 return ast.unparse(node.args.defaults[index])
         except Exception as e:
-            log_error(f"Error extracting default value for argument '{arg.arg}': {e}")
+            log_error(
+                f"Error extracting default value for argument '{arg.arg}': {e}")
         return None
 
     def _extract_common_details(self, node: ast.AST) -> Dict[str, Any]:

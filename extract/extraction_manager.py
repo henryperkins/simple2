@@ -4,6 +4,7 @@ from core.logger import log_info, log_error, log_debug
 from extract.classes import ClassExtractor
 from extract.functions import FunctionExtractor
 
+
 class ExtractionManager:
     """
     Enhanced extraction manager with support for exception classes and robust error handling.
@@ -33,19 +34,20 @@ class ExtractionManager:
             classes = class_extractor.extract_classes()
             functions = function_extractor.extract_functions()
 
-            log_info(f"Extraction complete. Found {len(classes)} classes and {len(functions)} functions")
+            log_info(
+                f"Extraction complete. Found {len(classes)} classes and {len(functions)} functions")
             return {
                 'classes': classes,
                 'functions': functions
             }
-            
+
         except SyntaxError as e:
             log_error(f"Syntax error in source code: {e}")
             return {'classes': [], 'functions': []}
         except Exception as e:
             log_error(f"Failed to extract metadata: {str(e)}")
             return {'classes': [], 'functions': []}
-        
+
     def detect_exceptions(self, function_node: ast.FunctionDef) -> List[str]:
         """Public method to detect exceptions in a function node.
 

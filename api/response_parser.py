@@ -38,6 +38,7 @@ JSON_SCHEMA = {
     "additionalProperties": False
 }
 
+
 class ResponseParser:
     """
     Parses and validates responses from Azure OpenAI API.
@@ -102,22 +103,26 @@ class ResponseParser:
 
             content = response["content"]
 
-            required_fields = ["docstring", "summary", "complexity_score", "changelog"]
-            missing_fields = [field for field in required_fields if field not in content]
+            required_fields = ["docstring", "summary",
+                               "complexity_score", "changelog"]
+            missing_fields = [
+                field for field in required_fields if field not in content]
             if missing_fields:
-                log_error(f"Response missing required fields: {missing_fields}")
+                log_error(
+                    f"Response missing required fields: {missing_fields}")
                 return False
 
             if "usage" in response:
                 usage = response["usage"]
-                required_usage_fields = ["prompt_tokens", "completion_tokens", "total_tokens"]
-                
+                required_usage_fields = [
+                    "prompt_tokens", "completion_tokens", "total_tokens"]
+
                 if not all(field in usage for field in required_usage_fields):
                     log_error("Missing usage information fields")
                     return False
-                
-                if not all(isinstance(usage[field], int) and usage[field] >= 0 
-                        for field in required_usage_fields):
+
+                if not all(isinstance(usage[field], int) and usage[field] >= 0
+                           for field in required_usage_fields):
                     log_error("Invalid token count in usage information")
                     return False
 
@@ -135,10 +140,10 @@ class ResponseParser:
     def _parse_plain_text_response(text: str) -> Optional[Dict[str, Any]]:
         """
         Fallback parser for plain text responses from Azure OpenAI.
-        
+
         Args:
             text (str): The plain text response to parse.
-            
+
         Returns:
             Optional[Dict[str, Any]]: Parsed response data or None if parsing fails.
         """

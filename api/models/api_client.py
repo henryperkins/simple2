@@ -17,6 +17,7 @@ from core.logger import log_info, log_error, log_debug, log_exception
 from core.exceptions import TooManyRetriesError
 from core.monitoring import SystemMonitor
 
+
 class AzureOpenAIClient:
     """
     Client for interacting with Azure OpenAI to generate docstrings.
@@ -46,13 +47,13 @@ class AzureOpenAIClient:
             deployment_name=self.config.deployment_name
         )
         self.cache = Cache()
-        
+
         self._client = AsyncAzureOpenAI(
             api_key=self.config.api_key[:4] + "****",  # Mask API key in logs
             api_version=self.config.api_version,
             azure_endpoint=self.config.endpoint
         )
-        
+
         self.api_interaction = APIInteraction(
             self.config,
             self.token_manager,
@@ -96,7 +97,7 @@ class AzureOpenAIClient:
         """
         try:
             log_debug(f"Generating docstring for function: {func_name}")
-            
+
             response = await self.api_interaction.get_docstring(
                 func_name=func_name,
                 params=params,
@@ -106,14 +107,14 @@ class AzureOpenAIClient:
                 decorators=decorators,
                 exceptions=exceptions
             )
-            
+
             if response and isinstance(response, dict):
                 log_info(f"Successfully generated docstring for {func_name}")
                 return response
-                
+
             log_error(f"Failed to generate docstring for {func_name}")
             return None
-            
+
         except OpenAIError as e:
             log_exception(f"OpenAI API error for {func_name}: {str(e)}")
             return None
@@ -149,27 +150,29 @@ class AzureOpenAIClient:
         """
         batch_size = batch_size or getattr(self.config, 'batch_size', 10)
         results = []
-        
+
         for i in range(0, len(functions), batch_size):
             batch = functions[i:i + batch_size]
             try:
-                log_debug(f"Processing batch {i//batch_size + 1}, size {len(batch)}")
-                
+                log_debug(
+                    f"Processing batch {i//batch_size + 1}, size {len(batch)}")
+
                 batch_results = await asyncio.gather(*[
                     self.generate_docstring(**func) for func in batch
                 ], return_exceptions=True)
-                
+
                 for func, result in zip(batch, batch_results):
                     if isinstance(result, Exception):
-                        log_exception(f"Error processing {func.get('func_name', 'unknown')}: {result}")
+                        log_exception(
+                            f"Error processing {func.get('func_name', 'unknown')}: {result}")
                         results.append(None)
                     else:
                         results.append(result)
-                
+
             except Exception as e:
                 log_exception(f"Batch processing error: {str(e)}")
                 results.extend([None] * len(batch))
-        
+
         return results
 
     async def health_check(self) -> Dict[str, Any]:

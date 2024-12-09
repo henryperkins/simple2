@@ -79,6 +79,7 @@ DOCSTRING_SCHEMA = {
     "additionalProperties": False
 }
 
+
 class DocstringValidator:
     """Validates docstrings with comprehensive type checking and content validation."""
 
@@ -90,7 +91,7 @@ class DocstringValidator:
     def _validate_type_string(self, type_str: str) -> List[str]:
         """
         Simplified and practical type string validation that actually works.
-        
+
         Args:
             type_str: The type string to validate
 
@@ -113,7 +114,8 @@ class DocstringValidator:
             r'^Union$.*$$',  # Union types
             r'^Optional$.*$$',  # Optional types
             r'^Callable($.*$)?$',  # Callable types
-            r'^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$',  # Fully qualified names
+            # Fully qualified names
+            r'^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$',
         ]
 
         if not any(re.match(pattern, type_str) for pattern in valid_patterns):
@@ -151,14 +153,19 @@ class DocstringValidator:
                 else:
                     type_errors = self._validate_type_string(param["type"])
                     if type_errors:
-                        errors.extend(f"Parameter {param['name']}: {err}" for err in type_errors)
+                        errors.extend(
+                            f"Parameter {param['name']}: {err}" for err in type_errors)
 
                 if "description" not in param:
-                    errors.append(f"Parameter {param['name']} missing description")
-                    logger.error(f"Parameter {param['name']} missing description.")
+                    errors.append(
+                        f"Parameter {param['name']} missing description")
+                    logger.error(
+                        f"Parameter {param['name']} missing description.")
                 elif len(param["description"].strip()) < 10:
-                    errors.append(f"Parameter {param['name']} description too short")
-                    logger.warning(f"Parameter {param['name']} description too short.")
+                    errors.append(
+                        f"Parameter {param['name']} description too short")
+                    logger.warning(
+                        f"Parameter {param['name']} description too short.")
 
         if "returns" in docstring_data:
             returns = docstring_data["returns"]
@@ -258,11 +265,15 @@ class DocstringValidator:
             for param in docstring_data['parameters']:
                 desc = param.get('description', '')
                 if len(desc.split()) < 3:
-                    errors.append(f"Description for parameter '{param['name']}' is too brief")
-                    logger.warning(f"Description for parameter '{param['name']}' is too brief.")
+                    errors.append(
+                        f"Description for parameter '{param['name']}' is too brief")
+                    logger.warning(
+                        f"Description for parameter '{param['name']}' is too brief.")
                 if not desc[0].isupper():
-                    errors.append(f"Description for parameter '{param['name']}' should start with a capital letter")
-                    logger.warning(f"Description for parameter '{param['name']}' should start with a capital letter.")
+                    errors.append(
+                        f"Description for parameter '{param['name']}' should start with a capital letter")
+                    logger.warning(
+                        f"Description for parameter '{param['name']}' should start with a capital letter.")
 
         if 'returns' in docstring_data:
             ret_desc = docstring_data['returns'].get('description', '')
@@ -270,8 +281,10 @@ class DocstringValidator:
                 errors.append("Return description is too brief")
                 logger.warning("Return description is too brief.")
             if not ret_desc[0].isupper():
-                errors.append("Return description should start with a capital letter")
-                logger.warning("Return description should start with a capital letter.")
+                errors.append(
+                    "Return description should start with a capital letter")
+                logger.warning(
+                    "Return description should start with a capital letter.")
 
         return errors
 
@@ -292,6 +305,7 @@ class DocstringValidator:
             logger.exception(f"Invalid type expression: {str(e)}")
             raise ValueError(f"Invalid type expression: {str(e)}")
 
+
 def parse_docstring(docstring: str) -> Dict[str, Any]:
     """Parse a docstring into structured sections."""
     logger.debug("Parsing docstring.")
@@ -307,7 +321,7 @@ def parse_docstring(docstring: str) -> Dict[str, Any]:
         line = line.strip()
 
         if line.endswith(':') and line.rstrip(':').lower() in ['args', 'arguments', 'parameters',
-                                                              'returns', 'raises', 'examples']:
+                                                               'returns', 'raises', 'examples']:
             if current_content:
                 sections[current_section] = '\n'.join(current_content).strip()
 
@@ -322,6 +336,7 @@ def parse_docstring(docstring: str) -> Dict[str, Any]:
         sections[current_section] = '\n'.join(current_content).strip()
 
     return _process_sections(sections)
+
 
 def _process_sections(sections: Dict[str, str]) -> Dict[str, Any]:
     """Process parsed sections into schema format."""
@@ -352,6 +367,7 @@ def _process_sections(sections: Dict[str, str]) -> Dict[str, Any]:
         processed["examples"] = examples
 
     return processed
+
 
 def _parse_parameters(params_str: str) -> List[Dict[str, Any]]:
     """Parse parameter section into structured format."""
@@ -390,6 +406,7 @@ def _parse_parameters(params_str: str) -> List[Dict[str, Any]]:
 
     return params
 
+
 def _parse_returns(returns_str: str) -> Dict[str, str]:
     """Parse return section into structured format."""
     logger.debug("Parsing returns section.")
@@ -403,6 +420,7 @@ def _parse_returns(returns_str: str) -> Dict[str, str]:
         "type": "None",
         "description": returns_str.strip() or "No return value."
     }
+
 
 def _parse_raises(raises_str: str) -> List[Dict[str, str]]:
     """Parse raises section into structured format."""
@@ -431,6 +449,7 @@ def _parse_raises(raises_str: str) -> List[Dict[str, str]]:
         raises.append(current_exception)
 
     return raises
+
 
 def _parse_examples(examples_str: str) -> List[Dict[str, str]]:
     """Parse examples section into structured format."""
@@ -465,6 +484,7 @@ def _parse_examples(examples_str: str) -> List[Dict[str, str]]:
 
     return examples
 
+
 def analyze_code_element_docstring(node: ast.AST) -> List[str]:
     """
     Analyze the docstring of a code element for completeness.
@@ -475,7 +495,8 @@ def analyze_code_element_docstring(node: ast.AST) -> List[str]:
     Returns:
         List[str]: A list of issues found in the docstring
     """
-    logger.debug(f"Analyzing docstring for node: {getattr(node, 'name', '<unknown>')}")
+    logger.debug(
+        f"Analyzing docstring for node: {getattr(node, 'name', '<unknown>')}")
     issues = []
     docstring = ast.get_docstring(node)
     if not docstring:
@@ -485,13 +506,15 @@ def analyze_code_element_docstring(node: ast.AST) -> List[str]:
 
     parsed_docstring = parse_docstring(docstring)
     validator = DocstringValidator()
-    is_valid, validation_errors = validator.validate_docstring(parsed_docstring)
+    is_valid, validation_errors = validator.validate_docstring(
+        parsed_docstring)
 
     if not is_valid:
         issues.extend(validation_errors)
         logger.warning(f"Validation errors found: {validation_errors}")
 
     return issues
+
 
 def validate_and_fix_docstring(docstring: str) -> Tuple[str, List[str]]:
     """
@@ -524,6 +547,7 @@ def validate_and_fix_docstring(docstring: str) -> Tuple[str, List[str]]:
     logger.info(f"Docstring validation and fixes applied: {changes}")
     return fixed_docstring, changes
 
+
 def parse_and_validate_docstring(docstring: str) -> Tuple[Optional[Dict[str, Any]], List[str]]:
     """
     Parse and validate a docstring comprehensively.
@@ -549,7 +573,8 @@ def parse_and_validate_docstring(docstring: str) -> Tuple[Optional[Dict[str, Any
         is_valid, validation_errors = validator.validate_docstring(parsed_data)
 
         if fix_changes:
-            validation_errors.extend([f"Applied fix: {change}" for change in fix_changes])
+            validation_errors.extend(
+                [f"Applied fix: {change}" for change in fix_changes])
 
         return parsed_data if is_valid else None, validation_errors
 

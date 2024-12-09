@@ -22,7 +22,9 @@ from datetime import datetime
 from docstring_utils import parse_docstring, parse_and_validate_docstring
 from core.logger import log_error
 from core.utils import handle_exceptions  # Import the decorator
-from docstring_utils import DocstringValidator  # Assuming this is where the validator is defined
+# Assuming this is where the validator is defined
+from docstring_utils import DocstringValidator
+
 
 class DocStringManager:
     """
@@ -55,13 +57,16 @@ class DocStringManager:
             docstring (str): The new docstring to insert
         """
         if not isinstance(docstring, str):
-            log_error(f"Invalid docstring for function '{node.name}'. Expected a string.")
+            log_error(
+                f"Invalid docstring for function '{node.name}'. Expected a string.")
             return
 
         # Validate before insertion
-        parsed_docstring, validation_errors = parse_and_validate_docstring(docstring)
+        parsed_docstring, validation_errors = parse_and_validate_docstring(
+            docstring)
         if parsed_docstring:
-            logging.debug(f"Inserting validated docstring into function '{node.name}'.")
+            logging.debug(
+                f"Inserting validated docstring into function '{node.name}'.")
             node.body.insert(0, ast.Expr(value=ast.Constant(value=docstring)))
         else:
             log_error(
@@ -124,7 +129,7 @@ class DocStringManager:
             markdown_gen.add_header(f"Module: {module_name}")
         if description:
             markdown_gen.add_section("Description", description)
-    
+
         for entry in documentation_entries:
             if 'function_name' in entry and 'docstring' in entry:
                 markdown_gen.add_section(
@@ -135,7 +140,7 @@ class DocStringManager:
         markdown = markdown_gen.generate_markdown()
         logging.info("Markdown documentation generated.")
         return markdown
-    
+
 
 class MarkdownGenerator:
     """
@@ -236,7 +241,7 @@ class DocumentationManager:
         """
         logger = logging.getLogger('documentation_manager')
         logger.setLevel(logging.DEBUG)
-        
+
         if not logger.handlers:
             handler = logging.StreamHandler()
             formatter = logging.Formatter(
@@ -244,7 +249,7 @@ class DocumentationManager:
             )
             handler.setFormatter(formatter)
             logger.addHandler(handler)
-        
+
         return logger
 
     def process_file(self, file_path: Union[str, Path]) -> Optional[str]:
@@ -268,15 +273,16 @@ class DocumentationManager:
                 source = f.read()
 
             module_doc = parse_docstring(source)
-            
+
             markdown_gen = MarkdownGenerator()
             markdown_gen.add_header(f"Documentation for {file_path.name}")
             if module_doc:
-                markdown_gen.add_section("Module Description", module_doc.get('Description', ''))
+                markdown_gen.add_section(
+                    "Module Description", module_doc.get('Description', ''))
 
             # Parse the source code
             tree = ast.parse(source)
-            
+
             # Process classes and functions
             for node in ast.walk(tree):
                 if isinstance(node, ast.ClassDef):
@@ -303,13 +309,14 @@ class DocumentationManager:
         logging.debug(f"Processing class: {node.name}")
         try:
             class_doc = ast.get_docstring(node) or "No documentation available"
-            markdown_gen.add_section(f"Class: {node.name}", 
-                                    class_doc)
-            
+            markdown_gen.add_section(f"Class: {node.name}",
+                                     class_doc)
+
             # Process class methods
             for item in node.body:
                 if isinstance(item, ast.FunctionDef):
-                    self._process_function(item, markdown_gen, is_method=True, class_name=node.name)
+                    self._process_function(
+                        item, markdown_gen, is_method=True, class_name=node.name)
         except Exception as e:
             self.logger.error(f"Error processing class {node.name}: {e}")
 
@@ -338,7 +345,7 @@ class DocumentationManager:
                 f"```python\n{signature}\n```\n",
                 func_doc
             ]
-            
+
             markdown_gen.add_section(section_title, "\n".join(content))
         except Exception as e:
             self.logger.error(f"Error processing function {node.name}: {e}")
@@ -367,7 +374,8 @@ class DocumentationManager:
                 if doc_content:
                     results[str(file_path)] = doc_content
             except Exception as e:
-                self.logger.error(f"Error processing directory {directory_path}: {e}")
+                self.logger.error(
+                    f"Error processing directory {directory_path}: {e}")
 
         return results
 
@@ -386,10 +394,10 @@ class DocumentationManager:
         try:
             output_file = Path(output_file)
             output_file.parent.mkdir(parents=True, exist_ok=True)
-            
+
             with open(output_file, 'w', encoding='utf-8') as f:
                 f.write(content)
-            
+
             self.logger.info(f"Documentation saved to {output_file}")
             return True
         except Exception as e:

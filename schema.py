@@ -15,6 +15,7 @@ from enum import Enum
 import json
 from pathlib import Path
 
+
 class DocstringParameter(TypedDict):
     """
     Represents a parameter in a function's docstring.
@@ -32,6 +33,7 @@ class DocstringParameter(TypedDict):
     optional: bool
     default_value: Optional[str]
 
+
 class DocstringReturns(TypedDict):
     """
     Represents the return value section of a function's docstring.
@@ -43,6 +45,7 @@ class DocstringReturns(TypedDict):
     type: str
     description: str
 
+
 class DocstringException(TypedDict):
     """
     Represents an exception that a function may raise, as documented in its docstring.
@@ -53,6 +56,7 @@ class DocstringException(TypedDict):
     """
     exception: str
     description: str
+
 
 class NoteType(Enum):
     """
@@ -69,6 +73,7 @@ class NoteType(Enum):
     TIP = "tip"
     IMPORTANT = "important"
 
+
 class DocstringNote(TypedDict):
     """
     Represents a note in a docstring.
@@ -80,6 +85,7 @@ class DocstringNote(TypedDict):
     type: NoteType
     content: str
 
+
 class DocstringExample(TypedDict):
     """
     Represents an example in a docstring.
@@ -90,6 +96,7 @@ class DocstringExample(TypedDict):
     """
     code: str
     description: Optional[str]
+
 
 class DocstringMetadata(TypedDict):
     """
@@ -105,6 +112,7 @@ class DocstringMetadata(TypedDict):
     since_version: Optional[str]
     deprecated: Optional[dict]
     complexity: Optional[dict]
+
 
 class DocstringSchema(TypedDict):
     """
@@ -127,6 +135,7 @@ class DocstringSchema(TypedDict):
     notes: Optional[List[DocstringNote]]
     metadata: Optional[DocstringMetadata]
 
+
 def load_schema() -> dict:
     """
     Load the JSON schema for docstrings from a file.
@@ -141,6 +150,7 @@ def load_schema() -> dict:
     schema_path = Path(__file__).parent / 'docstring_schema.json'
     with open(schema_path) as f:
         return json.load(f)
+
 
 try:
     JSON_SCHEMA = load_schema()

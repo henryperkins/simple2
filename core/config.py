@@ -46,7 +46,8 @@ class AzureOpenAIConfig(AIModelConfig):
             model_type="azure",
             endpoint=os.getenv("AZURE_OPENAI_ENDPOINT", ""),
             api_key=os.getenv("AZURE_OPENAI_KEY", ""),
-            api_version=os.getenv("AZURE_OPENAI_VERSION", "2024-02-15-preview"),
+            api_version=os.getenv("AZURE_OPENAI_VERSION",
+                                  "2024-02-15-preview"),
             deployment_name=os.getenv("AZURE_OPENAI_DEPLOYMENT", ""),
             model_name=os.getenv("MODEL_NAME", "gpt-4"),
             max_tokens=int(os.getenv("MAX_TOKENS", "4000")),
@@ -54,7 +55,8 @@ class AzureOpenAIConfig(AIModelConfig):
             max_retries=int(os.getenv("MAX_RETRIES", "3")),
             retry_delay=int(os.getenv("RETRY_DELAY", "2")),
             request_timeout=int(os.getenv("REQUEST_TIMEOUT", "30")),
-            max_tokens_per_minute=int(os.getenv("MAX_TOKENS_PER_MINUTE", "150000")),
+            max_tokens_per_minute=int(
+                os.getenv("MAX_TOKENS_PER_MINUTE", "150000")),
             token_buffer=int(os.getenv("TOKEN_BUFFER", "100")),
             docstring_functions={}
         )
@@ -70,7 +72,8 @@ class AzureOpenAIConfig(AIModelConfig):
         ]
         missing_fields = [field for field in required_fields if not field]
         if missing_fields:
-            logging.error(f"Missing required configuration fields: {missing_fields}")
+            logging.error(
+                f"Missing required configuration fields: {missing_fields}")
             return False
         return True
 
@@ -110,7 +113,8 @@ class ClaudeConfig(AIModelConfig):
         return cls(
             model_type="claude",
             api_key=os.getenv("CLAUDE_API_KEY", ""),
-            model_name=os.getenv("CLAUDE_MODEL_NAME", "claude-3-opus-20240229"),
+            model_name=os.getenv("CLAUDE_MODEL_NAME",
+                                 "claude-3-opus-20240229"),
             max_tokens=int(os.getenv("CLAUDE_MAX_TOKENS", "100000")),
             temperature=float(os.getenv("CLAUDE_TEMPERATURE", "0.7")),
             request_timeout=int(os.getenv("CLAUDE_TIMEOUT", "30")),

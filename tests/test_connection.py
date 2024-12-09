@@ -25,7 +25,7 @@ try:
         max_tokens=150
     )
     logger.debug("Response received successfully")
-    
+
     print("\nResponse content:")
     print(response.choices[0].message.content)
 

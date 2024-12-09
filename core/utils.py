@@ -40,9 +40,11 @@ def handle_exceptions(log_func):
                 # Attempt to retrieve the node from args or kwargs
                 node = kwargs.get('node', None)
                 if not node and args:
-                    node = next((arg for arg in args if isinstance(arg, ast.AST)), None)
+                    node = next(
+                        (arg for arg in args if isinstance(arg, ast.AST)), None)
 
-                node_name = getattr(node, 'name', '<unknown>') if node else '<unknown>'
+                node_name = getattr(
+                    node, 'name', '<unknown>') if node else '<unknown>'
                 log_func(f"Error in {func.__name__} for node {node_name}: {e}")
                 return None  # Return a default value or handle as needed
         return wrapper
@@ -86,7 +88,8 @@ async def load_json_file(filepath: str, max_retries: int = 3) -> Dict:
         await asyncio.sleep(2 ** attempt)
 
     # If all retries fail, log an error and return an empty dictionary
-    log_error(f"Failed to load JSON file after {max_retries} attempts: {filepath}")
+    log_error(
+        f"Failed to load JSON file after {max_retries} attempts: {filepath}")
     return {}
 
 
@@ -114,7 +117,8 @@ def validate_file_path(filepath: str, extension: str = '.py') -> bool:
         bool: True if the file path is valid, False otherwise.
     """
     is_valid = os.path.isfile(filepath) and filepath.endswith(extension)
-    log_debug(f"File path validation for '{filepath}' with extension '{extension}': {is_valid}")
+    log_debug(
+        f"File path validation for '{filepath}' with extension '{extension}': {is_valid}")
     return is_valid
 
 
@@ -194,7 +198,8 @@ def filter_files(
     Returns:
         List[str]: List of file paths that match the criteria.
     """
-    log_debug(f"Filtering files in directory '{directory}' with pattern '{pattern}'.")
+    log_debug(
+        f"Filtering files in directory '{directory}' with pattern '{pattern}'.")
     exclude_patterns = exclude_patterns or []
     matches = []
     for root, _, filenames in os.walk(directory):
@@ -224,7 +229,8 @@ def get_all_files(directory, exclude_dirs=None):
         ValueError: If the provided directory does not exist or is not accessible.
     """
     if not os.path.isdir(directory):
-        raise ValueError(f"The directory {directory} does not exist or is not accessible.")
+        raise ValueError(
+            f"The directory {directory} does not exist or is not accessible.")
 
     if exclude_dirs is None:
         exclude_dirs = []

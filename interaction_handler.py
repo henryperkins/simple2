@@ -26,6 +26,7 @@ from core.metrics import Metrics
 # Load environment variables from .env file
 load_dotenv()
 
+
 class InteractionHandler:
     """
     Manages the orchestration of docstring generation with integrated caching,
@@ -100,7 +101,7 @@ class InteractionHandler:
 
         function_results = []
         for i in range(0, len(functions), self.batch_size):
-            batch = functions[i : i + self.batch_size]
+            batch = functions[i: i + self.batch_size]
             batch_tasks = [
                 self.process_function(source_code, func_info) for func_info in batch
             ]
@@ -117,7 +118,8 @@ class InteractionHandler:
 
         for function_info, (docstring, metadata) in zip(functions, function_results):
             if docstring:
-                self.docstring_manager.insert_docstring(function_info["node"], docstring)
+                self.docstring_manager.insert_docstring(
+                    function_info["node"], docstring)
                 if metadata:
                     documentation_entries.append(
                         {
@@ -131,7 +133,8 @@ class InteractionHandler:
 
         for class_info, (docstring, metadata) in zip(classes, class_results):
             if docstring:
-                self.docstring_manager.insert_docstring(class_info["node"], docstring)
+                self.docstring_manager.insert_docstring(
+                    class_info["node"], docstring)
                 if metadata:
                     documentation_entries.append(
                         {
@@ -142,8 +145,10 @@ class InteractionHandler:
                         }
                     )
 
-        updated_code = self.docstring_manager.update_source_code(documentation_entries)
-        documentation = self.docstring_manager.generate_markdown_documentation(documentation_entries)
+        updated_code = self.docstring_manager.update_source_code(
+            documentation_entries)
+        documentation = self.docstring_manager.generate_markdown_documentation(
+            documentation_entries)
 
         total_items = len(functions) + len(classes)
         self.monitor.log_batch_completion(total_items)
@@ -181,7 +186,8 @@ class InteractionHandler:
             cache_key = self._generate_cache_key(function_info['node'])
             cached_response = await self.cache.get_cached_docstring(cache_key)
             if cached_response:
-                is_valid, validation_errors = self.validator.validate_docstring(cached_response)
+                is_valid, validation_errors = self.validator.validate_docstring(
+                    cached_response)
                 if is_valid:
                     log_info(f"Using valid cached docstring for {func_name}")
                     return cached_response["docstring"], cached_response
@@ -198,7 +204,8 @@ class InteractionHandler:
                         func_name=func_name,
                         params=function_info["args"],
                         return_type=function_info["returns"],
-                        complexity_score=function_info.get("complexity_score", 0),
+                        complexity_score=function_info.get(
+                            "complexity_score", 0),
                         existing_docstring=function_info["docstring"],
                         decorators=function_info["decorators"],
                         exceptions=function_info.get("exceptions", []),
@@ -223,7 +230,8 @@ class InteractionHandler:
                             )
 
                 except Exception as e:
-                    log_exception(f"Error generating docstring (attempt {attempt + 1}): {e}")
+                    log_exception(
+                        f"Error generating docstring (attempt {attempt + 1}): {e}")
 
             log_error(f"Failed to generate valid docstring for {func_name}")
             return None, None

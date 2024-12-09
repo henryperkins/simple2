@@ -5,6 +5,7 @@ import json
 from datetime import datetime
 from core.logger import log_info, log_error, log_debug
 
+
 @dataclass
 class DocstringChanges:
     """Data structure to track changes in function docstrings."""
@@ -13,6 +14,7 @@ class DocstringChanges:
     retained: List[Dict[str, Any]] = field(default_factory=list)
     failed: List[Dict[str, Any]] = field(default_factory=list)
 
+
 @dataclass
 class CurrentBatch:
     """Data structure for tracking current batch processing metrics."""
@@ -20,6 +22,7 @@ class CurrentBatch:
     total_time: float = 0.0
     processed: int = 0
     failed: int = 0
+
 
 @dataclass
 class ModelMetrics:
@@ -31,6 +34,7 @@ class ModelMetrics:
     status: str
     cost: float
     error: Optional[str] = None
+
 
 @dataclass
 class APIMetrics:
@@ -45,6 +49,7 @@ class APIMetrics:
     error: Optional[str] = None
     timestamp: float = field(default_factory=time.time)
 
+
 @dataclass
 class BatchMetrics:
     """Metrics data structure for batch operations."""
@@ -54,6 +59,7 @@ class BatchMetrics:
     total_tokens: int
     total_time: float
     average_time_per_function: float
+
 
 class SystemMonitor:
     """
@@ -123,7 +129,8 @@ class SystemMonitor:
             action (str): The action performed on the docstring (e.g., 'added', 'updated').
             function_name (str): Name of the function whose docstring was changed.
         """
-        log_debug(f"Logging docstring change: {action} for function: {function_name}")
+        log_debug(
+            f"Logging docstring change: {action} for function: {function_name}")
         # Use fields() to get the list of valid actions
         valid_actions = {f.name for f in fields(DocstringChanges)}
         if action in valid_actions:
@@ -144,7 +151,8 @@ class SystemMonitor:
             execution_time (float): Time taken to process the function.
             tokens_used (int): Number of tokens used in the operation.
         """
-        log_debug(f"Logging operation completion for function: {function_name}")
+        log_debug(
+            f"Logging operation completion for function: {function_name}")
         self.current_batch.total_tokens += tokens_used
         self.current_batch.total_time += execution_time
         self.current_batch.processed += 1
@@ -167,9 +175,10 @@ class SystemMonitor:
             failed=self.current_batch.failed,
             total_tokens=self.current_batch.total_tokens,
             total_time=self.current_batch.total_time,
-            average_time_per_function=self.current_batch.total_time / max(self.current_batch.processed, 1)
+            average_time_per_function=self.current_batch.total_time /
+            max(self.current_batch.processed, 1)
         )
-        
+
         # Reset batch metrics
         self.current_batch = CurrentBatch()
         log_info(f"Batch processing completed: {metrics}")
@@ -191,9 +200,10 @@ class SystemMonitor:
             error_msg = f"Unsupported model type: {model_type}"
             log_error(error_msg)
             raise ValueError(error_msg)
-            
+
         self.metrics_by_model[model_type][metrics.operation] = metrics
-        log_info(f"Model metrics logged: {model_type} - Operation: {metrics.operation}")
+        log_info(
+            f"Model metrics logged: {model_type} - Operation: {metrics.operation}")
 
     def get_metrics_summary(self) -> Dict[str, Any]:
         """

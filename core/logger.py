@@ -13,6 +13,7 @@ import logging
 import os
 from logging.handlers import RotatingFileHandler
 
+
 def configure_logger(name='docstring_workflow', log_file='workflow.log', level=None):
     """
     Configure and return a logger for the application.
@@ -33,7 +34,8 @@ def configure_logger(name='docstring_workflow', log_file='workflow.log', level=N
         logger.setLevel(level)
 
         # Create handlers
-        file_handler = RotatingFileHandler(log_file, maxBytes=5*1024*1024, backupCount=3)
+        file_handler = RotatingFileHandler(
+            log_file, maxBytes=5*1024*1024, backupCount=3)
         console_handler = logging.StreamHandler()
 
         # Set level for handlers
@@ -53,24 +55,30 @@ def configure_logger(name='docstring_workflow', log_file='workflow.log', level=N
 
     return logger
 
+
 # Create and configure a global logger instance for the entire workflow
 logger = configure_logger()
+
 
 def log_info(message):
     """Log an informational message."""
     logger.info(message)
 
+
 def log_error(message):
     """Log an error message."""
     logger.error(message)
+
 
 def log_debug(message):
     """Log a debug message for detailed tracing."""
     logger.debug(message)
 
+
 def log_exception(message):
     """Log an exception with traceback."""
     logger.exception(message)
+
 
 def log_warning(message):
     """Log a warning message."""

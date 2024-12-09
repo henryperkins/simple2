@@ -9,10 +9,13 @@ from core.cache import Cache
 from core.config import AzureOpenAIConfig
 from core.exceptions import TooManyRetriesError
 from docstring_utils import DocstringValidator
-from core.monitoring import SystemMonitor  # Assuming this is where the monitor is defined
+# Assuming this is where the monitor is defined
+from core.monitoring import SystemMonitor
 
 # Define HealthStatus as a type alias for better clarity
-HealthStatus = Dict[str, Union[str, Optional[float], Optional[Dict[str, int]], Optional[str]]]
+HealthStatus = Dict[str, Union[str, Optional[float],
+                               Optional[Dict[str, int]], Optional[str]]]
+
 
 class APIInteraction:
     """Handles interactions with the Azure OpenAI API."""
@@ -44,7 +47,8 @@ class APIInteraction:
         log_info(
             f"Token usage for {func_name}: {token_usage.total_tokens} tokens used, response time: {response_time}s")
         if error:
-            log_error(f"Error during token usage logging for {func_name}: {error}")
+            log_error(
+                f"Error during token usage logging for {func_name}: {error}")
 
     def _get_docstring_function(self) -> Dict[str, Any]:
         """Enhanced function schema for docstring generation."""
@@ -150,10 +154,12 @@ class APIInteraction:
 
             # Validate token limits before making request
             prompt_text = json.dumps(messages)
-            is_valid, metrics, validation_message = self.token_manager.validate_request(prompt_text)
+            is_valid, metrics, validation_message = self.token_manager.validate_request(
+                prompt_text)
 
             if not is_valid:
-                log_error(f"Token validation failed for {func_name}: {validation_message}")
+                log_error(
+                    f"Token validation failed for {func_name}: {validation_message}")
                 return None
 
             # Optimize prompt if needed
@@ -175,7 +181,8 @@ class APIInteraction:
                     log_error(f"Error in get_docstring for {func_name}: {e}")
                     await self.handle_rate_limits()
 
-            log_warning(f"Failed to generate docstring for {func_name} after {self.config.max_retries} attempts")
+            log_warning(
+                f"Failed to generate docstring for {func_name} after {self.config.max_retries} attempts")
             return None
 
         except Exception as e:
@@ -212,9 +219,11 @@ class APIInteraction:
             log_debug(f"Making API request, attempt {attempt + 1}")
 
             # Pre-request token check
-            estimated_tokens = self.token_manager.estimate_tokens(json.dumps(messages))
+            estimated_tokens = self.token_manager.estimate_tokens(
+                json.dumps(messages))
             if estimated_tokens > self.config.max_tokens:
-                log_error(f"Estimated tokens ({estimated_tokens}) exceed max tokens ({self.config.max_tokens})")
+                log_error(
+                    f"Estimated tokens ({estimated_tokens}) exceed max tokens ({self.config.max_tokens})")
                 return None
 
             response = await self.client.chat.completions.create(
@@ -226,7 +235,8 @@ class APIInteraction:
 
             # Track token usage
             if response.usage:
-                self.token_manager.track_request(response.usage.prompt_tokens, response.usage.completion_tokens)
+                self.token_manager.track_request(
+                    response.usage.prompt_tokens, response.usage.completion_tokens)
 
             log_debug("API request successful")
             return response
@@ -252,15 +262,16 @@ class APIInteraction:
                     content = content[len('json'):].strip()
 
             parsed_args = json.loads(content)
-            
+
             # Ensure docstring field exists
             if 'summary' in parsed_args and 'docstring' not in parsed_args:
                 # Convert summary to docstring if missing
                 parsed_args['docstring'] = parsed_args['summary']
-                
+
             # Validate response content
-            is_valid, validation_errors = self.validator.validate_docstring(parsed_args)
-            
+            is_valid, validation_errors = self.validator.validate_docstring(
+                parsed_args)
+
             if not is_valid:
                 log_error(
                     f"Response validation failed for {error_context['function']}: "
@@ -422,7 +433,7 @@ class APIInteraction:
     def get_client_info(self) -> Dict[str, Union[str, int, float]]:
         """
         Gets information about the API client configuration.
-        
+
         Returns:
             Dict[str, Union[str, int, float]]: Dictionary containing client configuration
             with string and numeric values.
@@ -489,25 +500,27 @@ class APIInteraction:
         """
         batch_size = batch_size or getattr(self.config, 'batch_size', 10)
         results = []
-        
+
         for i in range(0, len(functions), batch_size):
             batch = functions[i:i + batch_size]
             try:
-                log_debug(f"Processing batch {i//batch_size + 1}, size {len(batch)}")
-                
+                log_debug(
+                    f"Processing batch {i//batch_size + 1}, size {len(batch)}")
+
                 batch_results = await asyncio.gather(*[
                     self.get_docstring(**func) for func in batch
                 ], return_exceptions=True)
-                
+
                 for func, result in zip(batch, batch_results):
                     if isinstance(result, Exception):
-                        log_error(f"Error processing {func.get('func_name', 'unknown')}: {result}")
+                        log_error(
+                            f"Error processing {func.get('func_name', 'unknown')}: {result}")
                         results.append(None)
                     else:
                         results.append(result)
-                
+
             except Exception as e:
                 log_error(f"Batch processing error: {str(e)}")
                 results.extend([None] * len(batch))
-        
+
         return results

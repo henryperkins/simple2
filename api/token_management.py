@@ -15,6 +15,7 @@ import tiktoken
 
 from core.logger import log_debug, log_error, log_info, log_exception
 
+
 @dataclass
 class TokenUsage:
     """Token usage statistics and cost calculation."""
@@ -22,6 +23,7 @@ class TokenUsage:
     completion_tokens: int
     total_tokens: int
     estimated_cost: float
+
 
 class TokenManager:
     """
@@ -88,9 +90,11 @@ class TokenManager:
             self.encoding = tiktoken.encoding_for_model(self.model)
         except KeyError:
             self.encoding = tiktoken.get_encoding("cl100k_base")
-            
-        self.model_config = self.MODEL_LIMITS.get(self.model, self.MODEL_LIMITS["gpt-4"])
-        log_debug(f"TokenManager initialized for model: {self.model}, deployment: {deployment_name}")
+
+        self.model_config = self.MODEL_LIMITS.get(
+            self.model, self.MODEL_LIMITS["gpt-4"])
+        log_debug(
+            f"TokenManager initialized for model: {self.model}, deployment: {deployment_name}")
 
         self.total_prompt_tokens = 0
         self.total_completion_tokens = 0
@@ -159,7 +163,8 @@ class TokenManager:
                     remaining_tokens -= section_tokens
 
             final_tokens = self.estimate_tokens(optimized)
-            log_info(f"Prompt optimized from {current_tokens} to {final_tokens} tokens")
+            log_info(
+                f"Prompt optimized from {current_tokens} to {final_tokens} tokens")
             return optimized, self._calculate_usage(final_tokens, 0)
 
         except Exception as e:
@@ -179,13 +184,17 @@ class TokenManager:
             TokenUsage: Token usage statistics including cost
         """
         total_tokens = prompt_tokens + completion_tokens
-        
+
         if cached:
-            prompt_cost = (prompt_tokens / 1000) * self.model_config["cached_cost_per_1k_prompt"]
-            completion_cost = (completion_tokens / 1000) * self.model_config["cached_cost_per_1k_completion"]
+            prompt_cost = (prompt_tokens / 1000) * \
+                self.model_config["cached_cost_per_1k_prompt"]
+            completion_cost = (completion_tokens / 1000) * \
+                self.model_config["cached_cost_per_1k_completion"]
         else:
-            prompt_cost = (prompt_tokens / 1000) * self.model_config["cost_per_1k_prompt"]
-            completion_cost = (completion_tokens / 1000) * self.model_config["cost_per_1k_completion"]
+            prompt_cost = (prompt_tokens / 1000) * \
+                self.model_config["cost_per_1k_prompt"]
+            completion_cost = (completion_tokens / 1000) * \
+                self.model_config["cost_per_1k_completion"]
 
         return TokenUsage(
             prompt_tokens=prompt_tokens,
@@ -204,7 +213,8 @@ class TokenManager:
         """
         self.total_prompt_tokens += request_tokens
         self.total_completion_tokens += response_tokens
-        log_debug(f"Tracked request: {request_tokens} prompt tokens, {response_tokens} completion tokens")
+        log_debug(
+            f"Tracked request: {request_tokens} prompt tokens, {response_tokens} completion tokens")
 
     def get_usage_stats(self) -> Dict[str, int]:
         """
@@ -241,7 +251,8 @@ class TokenManager:
                 - Status message
         """
         prompt_tokens = self.estimate_tokens(prompt)
-        max_completion = max_completion_tokens or (self.model_config["max_tokens"] - prompt_tokens)
+        max_completion = max_completion_tokens or (
+            self.model_config["max_tokens"] - prompt_tokens)
         total_tokens = prompt_tokens + max_completion
 
         metrics = {
@@ -309,7 +320,8 @@ class TokenManager:
         Returns:
             float: Estimated cost in currency units
         """
-        usage = self._calculate_usage(prompt_tokens, estimated_completion_tokens, cached)
+        usage = self._calculate_usage(
+            prompt_tokens, estimated_completion_tokens, cached)
         return usage.estimated_cost
 
     def reset_cache(self) -> None:
@@ -333,6 +345,7 @@ def estimate_tokens(text: str, model: str = "gpt-4") -> int:
     """
     manager = TokenManager(model)
     return manager.estimate_tokens(text)
+
 
 def optimize_prompt(text: str, max_tokens: int = 4000) -> str:
     """

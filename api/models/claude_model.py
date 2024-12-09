@@ -6,8 +6,10 @@ from core.logger import log_info, log_error, log_debug
 import time
 import json
 
+
 class MockClient:
     """A mock client to simulate async operations."""
+
     async def messages_create(self, *args, **kwargs):
         return MockResponse()
 
@@ -15,10 +17,13 @@ class MockClient:
         """Simulate closing the client connection."""
         pass
 
+
 class MockResponse:
     """A mock response to simulate API responses."""
     content = '{"docstring": "Example docstring", "summary": "Example summary", "complexity_analysis": "O(n)", "examples": ["Example 1", "Example 2"], "changelog": "Initial version"}'
-    usage = type('usage', (object,), {'input_tokens': 10, 'output_tokens': 5, 'total_tokens': 15})
+    usage = type('usage', (object,), {
+                 'input_tokens': 10, 'output_tokens': 5, 'total_tokens': 15})
+
 
 class ClaudeClient(BaseAIClient):
     """
@@ -77,7 +82,8 @@ class ClaudeClient(BaseAIClient):
             if response and response.content:
                 parsed_response = self._parse_response(response)
                 if parsed_response and self._validate_response(parsed_response):
-                    log_info(f"Successfully generated docstring for {func_name}")
+                    log_info(
+                        f"Successfully generated docstring for {func_name}")
                     return parsed_response
                 else:
                     log_error(f"Invalid response format for {func_name}")
@@ -162,7 +168,7 @@ Ensure the docstring follows Google style format and includes:
 
             # Parse JSON content
             content = json.loads(response.content)
-            
+
             return {
                 "content": content,
                 "usage": {
@@ -183,8 +189,9 @@ Ensure the docstring follows Google style format and includes:
         if response is None:
             return False
 
-        required_fields = ["docstring", "summary", "complexity_analysis", "examples"]
-        
+        required_fields = ["docstring", "summary",
+                           "complexity_analysis", "examples"]
+
         try:
             if "content" not in response:
                 return False

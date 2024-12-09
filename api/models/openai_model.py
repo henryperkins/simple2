@@ -11,6 +11,7 @@ from core.config import OpenAIConfig
 from core.logger import log_info, log_error, log_debug
 from core.exceptions import TooManyRetriesError
 
+
 class OpenAIClient(BaseAIClient):
     """
     OpenAI client implementation with advanced features including:
@@ -25,13 +26,13 @@ class OpenAIClient(BaseAIClient):
         """Initialize OpenAI client with configuration."""
         self.config = config
         self.client = AsyncOpenAI(api_key=config.api_key)
-        
+
         # Initialize token counter
         try:
             self.tokenizer = tiktoken.encoding_for_model(config.model_name)
         except KeyError:
             self.tokenizer = tiktoken.get_encoding("cl100k_base")
-            
+
         log_info(f"Initialized OpenAI client with model: {config.model_name}")
 
     @retry(
@@ -91,7 +92,8 @@ class OpenAIClient(BaseAIClient):
             if response and response.choices:
                 parsed_response = self._parse_response(response)
                 if self._validate_response(parsed_response):
-                    log_info(f"Successfully generated docstring for {func_name}")
+                    log_info(
+                        f"Successfully generated docstring for {func_name}")
                     return parsed_response
                 else:
                     log_error(f"Invalid response format for {func_name}")
@@ -143,8 +145,10 @@ Generate documentation for the following Python function:
 Function Name: {kwargs['func_name']}
 Parameters: {', '.join(f'{name}: {type_}' for name, type_ in kwargs['params'])}
 Return Type: {kwargs['return_type']}
-Decorators: {', '.join(kwargs['decorators']) if kwargs['decorators'] else 'None'}
-Exceptions: {', '.join(kwargs['exceptions']) if kwargs['exceptions'] else 'None'}
+Decorators: {', '.join(kwargs['decorators'])
+                       if kwargs['decorators'] else 'None'}
+Exceptions: {', '.join(kwargs['exceptions'])
+                       if kwargs['exceptions'] else 'None'}
 Complexity Score: {kwargs['complexity_score']}
 Existing Docstring: {kwargs['existing_docstring'] if kwargs['existing_docstring'] else 'None'}
 
@@ -180,34 +184,34 @@ Ensure the docstring follows Google style format and includes:
             # Start with system message
             optimized = [messages[0]]
             current_tokens = self._count_tokens(json.dumps(optimized))
-            
+
             # Add user message content with optimization if needed
             user_content = messages[1]["content"]
             sections = user_content.split('\n\n')
-            
+
             essential_sections = []
             optional_sections = []
-            
+
             # Categorize sections
             for section in sections:
                 if any(key in section.lower() for key in ["function name", "parameters", "return type"]):
                     essential_sections.append(section)
                 else:
                     optional_sections.append(section)
-            
+
             # Add essential sections
             optimized_content = '\n\n'.join(essential_sections)
-            
+
             # Add optional sections that fit
             for section in optional_sections:
                 section_tokens = self._count_tokens(section)
                 if current_tokens + section_tokens < self.config.max_tokens * 0.8:
                     optimized_content += f"\n\n{section}"
                     current_tokens += section_tokens
-            
+
             optimized.append({"role": "user", "content": optimized_content})
             return optimized
-            
+
         except Exception as e:
             log_error(f"Error optimizing prompt: {str(e)}")
             return messages
@@ -216,9 +220,11 @@ Ensure the docstring follows Google style format and includes:
         """Parse OpenAI's response into structured format."""
         try:
             if not response.choices or not response.choices[0].message.content:
+
+
 [Timestamp: 2024/11/17 09:05:46]
 
-**user**: continue 
+**user**: continue
 [Timestamp: 2024/11/17 09:05:55]
 
 **ai**: Here's the continuation of the OpenAI client implementation:

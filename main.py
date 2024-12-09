@@ -121,7 +121,8 @@ def save_updated_source(file_path: str, updated_code: str) -> None:
         log_debug(f"Attempting to save updated source code to: {file_path}")
         with open(file_path, "w", encoding="utf-8") as file:
             file.write(updated_code)
-            log_info(f"Successfully saved updated source code to '{file_path}'")
+            log_info(
+                f"Successfully saved updated source code to '{file_path}'")
     except IOError as e:
         log_error(f"Failed to save updated source code to '{file_path}': {e}")
         raise
@@ -306,7 +307,8 @@ async def process_file(file_path: str, args: argparse.Namespace, client: AzureOp
                 ensure_directory(args.output_dir)
 
                 # Save outputs with proper resource management
-                doc_path = Path(args.output_dir) / f"{Path(file_path).stem}_docs.md"
+                doc_path = Path(args.output_dir) / \
+                    f"{Path(file_path).stem}_docs.md"
                 output_path = Path(args.output_dir) / Path(file_path).name
 
                 async with aiofiles.open(doc_path, 'w', encoding='utf-8') as doc_file:
@@ -322,7 +324,9 @@ async def process_file(file_path: str, args: argparse.Namespace, client: AzureOp
         for resource in temp_resources:
             await resource.close()
 
-    log_info(f"Processing of file {file_path} completed in {time.time() - start_time:.2f} seconds")
+    log_info(
+        f"Processing of file {file_path} completed in {time.time() - start_time:.2f} seconds")
+
 
 async def run_workflow(args: argparse.Namespace) -> None:
     """

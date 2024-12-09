@@ -48,7 +48,8 @@ class FunctionExtractor(BaseExtractor):
                 function_info = self.extract_details(node)
                 if function_info:
                     functions.append(function_info)
-                    log_info(f"Extracted function '{node.name}' with metadata.")
+                    log_info(
+                        f"Extracted function '{node.name}' with metadata.")
 
         log_debug(f"Total functions extracted: {len(functions)}")
         return functions
@@ -65,7 +66,8 @@ class FunctionExtractor(BaseExtractor):
             dict: A dictionary containing function details.
         """
         if not isinstance(node, ast.FunctionDef):
-            raise ValueError(f"Expected FunctionDef node, got {type(node).__name__}")
+            raise ValueError(
+                f"Expected FunctionDef node, got {type(node).__name__}")
 
         log_debug(f"Extracting details for function: {node.name}")
 

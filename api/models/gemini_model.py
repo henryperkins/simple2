@@ -11,6 +11,7 @@ from base_client import BaseAIClient
 from core.config import GeminiConfig
 from core.logger import log_info, log_error, log_debug
 
+
 class GeminiClient(BaseAIClient):
     """
     Gemini AI client implementation with advanced features including:
@@ -23,10 +24,10 @@ class GeminiClient(BaseAIClient):
     def __init__(self, config: GeminiConfig):
         """Initialize Gemini client with configuration."""
         self.config = config
-        
+
         # Configure Gemini
         genai.configure(api_key=config.api_key)
-        
+
         # Initialize model
         self.model = genai.GenerativeModel(
             model_name=config.model_name,
@@ -35,7 +36,7 @@ class GeminiClient(BaseAIClient):
                 "max_output_tokens": config.max_tokens,
             }
         )
-        
+
         log_info(f"Initialized Gemini client with model: {config.model_name}")
 
     @retry(
@@ -82,7 +83,8 @@ class GeminiClient(BaseAIClient):
             if response and response.text:
                 parsed_response = self._parse_response(response)
                 if self._validate_response(parsed_response):
-                    log_info(f"Successfully generated docstring for {func_name}")
+                    log_info(
+                        f"Successfully generated docstring for {func_name}")
                     return parsed_response
                 else:
                     log_error(f"Invalid response format for {func_name}")
@@ -133,8 +135,10 @@ Generate documentation for the following Python function:
 Function Name: {kwargs['func_name']}
 Parameters: {', '.join(f'{name}: {type_}' for name, type_ in kwargs['params'])}
 Return Type: {kwargs['return_type']}
-Decorators: {', '.join(kwargs['decorators']) if kwargs['decorators'] else 'None'}
-Exceptions: {', '.join(kwargs['exceptions']) if kwargs['exceptions'] else 'None'}
+Decorators: {', '.join(kwargs['decorators'])
+                       if kwargs['decorators'] else 'None'}
+Exceptions: {', '.join(kwargs['exceptions'])
+                       if kwargs['exceptions'] else 'None'}
 Complexity Score: {kwargs['complexity_score']}
 Existing Docstring: {kwargs['existing_docstring'] if kwargs['existing_docstring'] else 'None'}
 
@@ -167,7 +171,7 @@ Ensure the docstring follows Google style format and includes:
             if start >= 0 and end > start:
                 json_str = text[start:end]
                 content = json.loads(json_str)
-                
+
                 return {
                     "content": content,
                     "usage": {
@@ -189,8 +193,9 @@ Ensure the docstring follows Google style format and includes:
         """
         Validate Gemini's response format and content.
         """
-        required_fields = ["docstring", "summary", "complexity_analysis", "examples"]
-        
+        required_fields = ["docstring", "summary",
+            "complexity_analysis", "examples"]
+
         try:
             if not response or "content" not in response:
                 return False
@@ -212,27 +217,27 @@ Ensure the docstring follows Google style format and includes:
         Process multiple prompts in batches.
         """
         results = []
-        
+
         for i in range(0, len(prompts), batch_size):
             batch = prompts[i:i + batch_size]
             batch_tasks = []
-            
+
             for prompt in batch:
                 task = asyncio.create_task(self._process_single_prompt(prompt))
                 batch_tasks.append(task)
-            
+
             # Process batch
             batch_results = await asyncio.gather(*batch_tasks, return_exceptions=True)
             results.extend(batch_results)
-            
+
             # Rate limiting delay
             if i + batch_size < len(prompts):
                 await asyncio.sleep(delay)
-        
-        
+
+
 [Timestamp: 2024/11/17 09:16:59]
 
-**user**: Continue 
+**user**: Continue
 [Timestamp: 2024/11/17 09:17:03]
 
 **ai**: Here's the continuation of the Gemini client implementation:
